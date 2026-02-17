@@ -1,0 +1,118 @@
+@import "tailwindcss";
+
+@theme {
+  --color-wood-dark: #5C3317;
+  --color-wood: #8B4513;
+  --color-wood-light: #A0522D;
+  --color-wood-lighter: #CD853F;
+  --color-dust: #D2B48C;
+  --color-dust-light: #E8D5B7;
+  --color-dust-lighter: #F5E6D0;
+  --color-sky-blue: #6B8FA3;
+  --color-sky-orange: #C97B3A;
+  --color-sky-sunset: #D4956B;
+  --color-parchment: #F4E4C1;
+  --color-ink: #2C1810;
+  --font-pixel: "Press Start 2P", monospace;
+}
+
+* {
+  image-rendering: pixelated;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-pixel);
+  background: var(--color-ink);
+  overflow: hidden;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+@keyframes blink {
+  0%, 90%, 100% { opacity: 1; }
+  95% { opacity: 0; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.animate-bounce-slow {
+  animation: bounce 1.5s ease-in-out infinite;
+}
+
+.animate-bob {
+  animation: bob 2s ease-in-out infinite;
+}
+
+.animate-blink {
+  animation: blink 3s step-end infinite;
+}
+
+@keyframes accent-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.animate-accent-pulse {
+  animation: accent-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes window-flicker {
+  0%, 100% { opacity: 1; }
+  30% { opacity: 0.85; }
+  60% { opacity: 1; }
+  80% { opacity: 0.9; }
+}
+
+@keyframes window-pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 4px currentColor; }
+  50% { opacity: 0.6; box-shadow: 0 0 12px currentColor; }
+}
+
+.animate-window-flicker {
+  animation: window-flicker 2s ease-in-out infinite;
+}
+
+.animate-window-pulse {
+  animation: window-pulse 1.5s ease-in-out infinite;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-wood-dark);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-wood-light);
+  border: 1px solid var(--color-wood-dark);
+}
