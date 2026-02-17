@@ -78,7 +78,7 @@ export default function TownScene({
       <div
         style={{
           flex: 1,
-          background: "linear-gradient(to bottom, #C97B3A, #B89B5E)",
+          background: "linear-gradient(to bottom, #D48540 0%, #C88E50 15%, #BE9458 35%, #B89B5E 60%, #C4A265 85%, #C4A86A 100%)",
           display: "flex",
           alignItems: "flex-end",
           overflowX: "auto",

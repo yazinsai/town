@@ -102,6 +102,33 @@ body {
   animation: slide-up 0.3s ease-out;
 }
 
+@keyframes star-twinkle {
+  0%, 70%, 100% { opacity: 0.2; }
+  80% { opacity: 1; }
+}
+
+.animate-star-twinkle {
+  animation: star-twinkle 4s ease-in-out infinite;
+}
+
+@keyframes bird-fly {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(calc(-100vw - 200px)); }
+}
+
+.animate-bird-fly {
+  animation: bird-fly 18s linear infinite;
+}
+
+@keyframes tumbleweed {
+  0% { transform: translateX(0) rotate(0deg); }
+  100% { transform: translateX(calc(100vw + 40px)) rotate(1440deg); }
+}
+
+.animate-tumbleweed {
+  animation: tumbleweed 25s linear infinite;
+}
+
 /* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 8px;
