@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type { Building, Agent } from "@shared/types";
 import { login, checkAuth, getBuilding } from "./lib/api";
 import { useWebSocket } from "./hooks/useWebSocket";
@@ -11,11 +11,26 @@ import PixelButton from "./components/ui/PixelButton";
 import PixelInput from "./components/ui/PixelInput";
 import PixelText from "./components/ui/PixelText";
 
+const SEEN_AGENTS_KEY = "claude-town-seen-agents";
+
+function loadSeenAgents(): Set<string> {
+  try {
+    const stored = localStorage.getItem(SEEN_AGENTS_KEY);
+    return stored ? new Set(JSON.parse(stored)) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+function saveSeenAgents(set: Set<string>) {
+  localStorage.setItem(SEEN_AGENTS_KEY, JSON.stringify([...set]));
+}
+
 
 type Panel =
   | { type: "none" }
   | { type: "newBuilding" }
-  | { type: "buildingDetail"; building: Building }
+  | { type: "buildingDetail"; building: Building; focusedAgentId?: string }
   | { type: "quickResponse"; agent: Agent };
 
 function LoginScreen({ onLogin }: { onLogin: () => void }) {
@@ -99,6 +114,17 @@ export default function App() {
   const { buildings, refetch } = useBuildings(lastEvent);
   const [panel, setPanel] = useState<Panel>({ type: "none" });
   const [agentsByBuilding, setAgentsByBuilding] = useState<Record<string, Agent[]>>({});
+  const [seenAgents, setSeenAgents] = useState(() => loadSeenAgents());
+
+  const markAgentSeen = useCallback((agentId: string) => {
+    setSeenAgents((prev) => {
+      if (prev.has(agentId)) return prev;
+      const next = new Set(prev);
+      next.add(agentId);
+      saveSeenAgents(next);
+      return next;
+    });
+  }, []);
 
   // Fetch agent details for all buildings
   useEffect(() => {
@@ -168,10 +194,14 @@ export default function App() {
       <TownScene
         buildings={buildings}
         agents={agentsByBuilding}
+        seenAgents={seenAgents}
         onBuildClick={(building) =>
           setPanel({ type: "buildingDetail", building })
         }
-        onBubbleClick={(agent) => setPanel({ type: "quickResponse", agent })}
+        onBubbleClick={(agent, building) => {
+          if (agent.state === "completed") markAgentSeen(agent.id);
+          setPanel({ type: "buildingDetail", building, focusedAgentId: agent.id });
+        }}
         onNewBuilding={() => setPanel({ type: "newBuilding" })}
         connected={connected}
       />
@@ -203,11 +233,13 @@ export default function App() {
       {panel.type === "buildingDetail" && (
         <BuildingDetail
           building={panel.building}
+          focusedAgentId={panel.focusedAgentId}
           lastEvent={lastEvent}
           onClose={() => setPanel({ type: "none" })}
           onAgentBubbleClick={(agent) =>
             setPanel({ type: "quickResponse", agent })
           }
+          onAgentSeen={markAgentSeen}
           onDeleted={() => {
             setPanel({ type: "none" });
             refetch();

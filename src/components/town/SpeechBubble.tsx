@@ -1,45 +1,54 @@
+export type BubbleType = "question" | "permission" | "completed" | "error";
+
 interface SpeechBubbleProps {
-  type: "question" | "permission";
+  type: BubbleType;
   onClick: () => void;
 }
 
+const bubbleConfig: Record<BubbleType, { icon: string; color: string; animation: string }> = {
+  question: { icon: "?", color: "#C97B3A", animation: "animate-bounce-slow" },
+  permission: { icon: "!", color: "#8B2500", animation: "animate-bounce-slow" },
+  completed: { icon: "OK", color: "#2E7D32", animation: "animate-pulse-gentle" },
+  error: { icon: "X", color: "#C62828", animation: "animate-pulse-gentle" },
+};
+
 export default function SpeechBubble({ type, onClick }: SpeechBubbleProps) {
+  const { icon, color, animation } = bubbleConfig[type];
+
   return (
     <div
       onClick={(e) => {
         e.stopPropagation();
         onClick();
       }}
-      className="animate-bounce-slow"
+      className={animation}
       style={{
-        position: "absolute",
-        top: "-32px",
-        left: "50%",
-        transform: "translateX(-50%)",
+        position: "relative",
         background: "#fff",
         border: "2px solid #2C1810",
-        padding: "4px 8px",
+        padding: "2px 5px",
         fontFamily: "'Press Start 2P', monospace",
-        fontSize: "12px",
-        color: type === "question" ? "#C97B3A" : "#8B2500",
+        fontSize: "8px",
+        color,
         cursor: "pointer",
         zIndex: 10,
         whiteSpace: "nowrap",
+        lineHeight: "1.2",
       }}
     >
-      {type === "question" ? "?" : "!"}
-      {/* Triangle pointer */}
+      {icon}
+      {/* Triangle pointer - points left toward building */}
       <div
         style={{
           position: "absolute",
-          bottom: "-6px",
-          left: "50%",
-          transform: "translateX(-50%)",
+          left: "-6px",
+          top: "50%",
+          transform: "translateY(-50%)",
           width: 0,
           height: 0,
-          borderLeft: "4px solid transparent",
-          borderRight: "4px solid transparent",
-          borderTop: "6px solid #2C1810",
+          borderTop: "4px solid transparent",
+          borderBottom: "4px solid transparent",
+          borderRight: "6px solid #2C1810",
         }}
       />
     </div>

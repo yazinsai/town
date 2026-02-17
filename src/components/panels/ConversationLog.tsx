@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState } from "react";
 import type { ConversationEntry } from "@shared/types";
+import ReactMarkdown from "react-markdown";
 import PixelText from "../ui/PixelText";
 
 interface ConversationLogProps {
@@ -147,18 +148,110 @@ function Entry({ entry }: { entry: ConversationEntry }) {
         </PixelText>
       </div>
       <div
+        className="pixel-markdown"
         style={{
           background: isUser ? "rgba(232,197,90,0.1)" : "rgba(142,170,184,0.1)",
           border: `1px solid ${isUser ? "#5C4A1A" : "#4A5A6A"}`,
           padding: "6px 8px",
           maxWidth: "85%",
-          whiteSpace: "pre-wrap",
           wordBreak: "break-word",
+          fontFamily: "'Press Start 2P', monospace",
+          fontSize: "6px",
+          lineHeight: "10px",
+          color: "#E8D5B7",
         }}
       >
-        <PixelText variant="small" color="#E8D5B7">
+        <ReactMarkdown
+          components={{
+            h1: ({ children }) => (
+              <p style={{ fontSize: "10px", lineHeight: "16px", margin: "4px 0 2px", color: "#F4D03F", fontFamily: "inherit" }}>{children}</p>
+            ),
+            h2: ({ children }) => (
+              <p style={{ fontSize: "8px", lineHeight: "14px", margin: "4px 0 2px", color: "#F4D03F", fontFamily: "inherit" }}>{children}</p>
+            ),
+            h3: ({ children }) => (
+              <p style={{ fontSize: "7px", lineHeight: "12px", margin: "3px 0 2px", color: "#E8C55A", fontFamily: "inherit" }}>{children}</p>
+            ),
+            h4: ({ children }) => (
+              <p style={{ fontSize: "6px", lineHeight: "10px", margin: "3px 0 2px", color: "#E8C55A", fontFamily: "inherit" }}>{children}</p>
+            ),
+            p: ({ children }) => (
+              <p style={{ margin: "2px 0", fontFamily: "inherit" }}>{children}</p>
+            ),
+            strong: ({ children }) => (
+              <strong style={{ color: "#F4E4C1" }}>{children}</strong>
+            ),
+            em: ({ children }) => (
+              <em style={{ color: "#C8B89A" }}>{children}</em>
+            ),
+            code: ({ children, className }) => {
+              const isBlock = className?.includes("language-");
+              if (isBlock) {
+                return (
+                  <code
+                    style={{
+                      display: "block",
+                      background: "#1A0F0A",
+                      border: "1px solid #3E2109",
+                      padding: "4px",
+                      margin: "3px 0",
+                      whiteSpace: "pre-wrap",
+                      color: "#A0826A",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    {children}
+                  </code>
+                );
+              }
+              return (
+                <code
+                  style={{
+                    background: "#1A0F0A",
+                    padding: "1px 3px",
+                    color: "#A0826A",
+                    fontFamily: "inherit",
+                  }}
+                >
+                  {children}
+                </code>
+              );
+            },
+            pre: ({ children }) => (
+              <pre style={{ margin: "3px 0", whiteSpace: "pre-wrap", fontFamily: "inherit" }}>{children}</pre>
+            ),
+            ul: ({ children }) => (
+              <ul style={{ margin: "2px 0", paddingLeft: "12px", fontFamily: "inherit" }}>{children}</ul>
+            ),
+            ol: ({ children }) => (
+              <ol style={{ margin: "2px 0", paddingLeft: "12px", fontFamily: "inherit" }}>{children}</ol>
+            ),
+            li: ({ children }) => (
+              <li style={{ margin: "1px 0", fontFamily: "inherit" }}>{children}</li>
+            ),
+            blockquote: ({ children }) => (
+              <blockquote
+                style={{
+                  borderLeft: "2px solid #5C3317",
+                  margin: "3px 0",
+                  paddingLeft: "6px",
+                  color: "#C8B89A",
+                  fontFamily: "inherit",
+                }}
+              >
+                {children}
+              </blockquote>
+            ),
+            hr: () => (
+              <hr style={{ border: "none", borderTop: "1px solid #3E2109", margin: "4px 0" }} />
+            ),
+            a: ({ children, href }) => (
+              <a href={href} style={{ color: "#8EAAB8", textDecoration: "underline" }} target="_blank" rel="noopener noreferrer">{children}</a>
+            ),
+          }}
+        >
           {entry.content}
-        </PixelText>
+        </ReactMarkdown>
       </div>
     </div>
   );

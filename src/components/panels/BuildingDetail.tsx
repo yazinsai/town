@@ -9,9 +9,11 @@ import PixelText from "../ui/PixelText";
 
 interface BuildingDetailProps {
   building: Building;
+  focusedAgentId?: string;
   lastEvent: WSEvent | null;
   onClose: () => void;
   onAgentBubbleClick: (agent: Agent) => void;
+  onAgentSeen: (agentId: string) => void;
   onDeleted: () => void;
 }
 
@@ -37,14 +39,18 @@ const defaultFloorStyle = floorStyles.idle;
 
 function AgentFloor({
   agent,
+  initialExpanded = false,
   lastEvent,
   onBubbleClick,
+  onAgentSeen,
 }: {
   agent: Agent;
+  initialExpanded?: boolean;
   lastEvent: WSEvent | null;
   onBubbleClick: (agent: Agent) => void;
+  onAgentSeen: (agentId: string) => void;
 }) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(initialExpanded);
   const [msg, setMsg] = useState("");
   const [sending, setSending] = useState(false);
   const { agent: liveAgent, conversation } = useAgent(
@@ -96,7 +102,13 @@ function AgentFloor({
 
       <div style={{ flex: 1, minWidth: 0 }}>
         <div
-          onClick={() => setExpanded(!expanded)}
+          onClick={() => {
+            const next = !expanded;
+            setExpanded(next);
+            if (next && displayAgent.state === "completed") {
+              onAgentSeen(agent.id);
+            }
+          }}
           style={{
             padding: "8px",
             cursor: "pointer",
@@ -207,9 +219,11 @@ function AgentFloor({
 
 export default function BuildingDetail({
   building,
+  focusedAgentId,
   lastEvent,
   onClose,
   onAgentBubbleClick,
+  onAgentSeen,
   onDeleted,
 }: BuildingDetailProps) {
   const [agents, setAgents] = useState<Agent[]>([]);
@@ -321,8 +335,10 @@ export default function BuildingDetail({
             <AgentFloor
               key={agent.id}
               agent={agent}
+              initialExpanded={agent.id === focusedAgentId}
               lastEvent={lastEvent}
               onBubbleClick={onAgentBubbleClick}
+              onAgentSeen={onAgentSeen}
             />
           ))
         )}

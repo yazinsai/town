@@ -7,8 +7,9 @@ import PixelText from "../ui/PixelText";
 interface TownSceneProps {
   buildings: BuildingType[];
   agents: Record<string, Agent[]>;
+  seenAgents: Set<string>;
   onBuildClick: (building: BuildingType) => void;
-  onBubbleClick: (agent: Agent) => void;
+  onBubbleClick: (agent: Agent, building: BuildingType) => void;
   onNewBuilding: () => void;
   connected: boolean;
 }
@@ -16,6 +17,7 @@ interface TownSceneProps {
 export default function TownScene({
   buildings,
   agents,
+  seenAgents,
   onBuildClick,
   onBubbleClick,
   onNewBuilding,
@@ -93,8 +95,9 @@ export default function TownScene({
             key={building.id}
             building={building}
             agents={agents[building.id] || []}
+            seenAgents={seenAgents}
             onClick={() => onBuildClick(building)}
-            onBubbleClick={onBubbleClick}
+            onBubbleClick={(agent) => onBubbleClick(agent, building)}
           />
         ))}
 

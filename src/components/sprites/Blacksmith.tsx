@@ -1,65 +1,99 @@
 import type { AgentState } from "@shared/types";
 import FloorWindow from "./FloorWindow";
 
-interface SheriffOfficeProps {
+interface BlacksmithProps {
   agents: { state: AgentState }[];
   name?: string;
 }
 
-export default function SheriffOffice({ agents, name }: SheriffOfficeProps) {
+export default function Blacksmith({ agents, name }: BlacksmithProps) {
   const floors = agents.length;
-  const baseHeight = 80;
+  const baseHeight = 75;
   const floorHeight = 24;
   const totalHeight = baseHeight + Math.max(0, floors - 1) * floorHeight;
 
   return (
     <div style={{ width: "120px", position: "relative" }}>
+      {/* Chimney */}
+      <div
+        style={{
+          position: "absolute",
+          top: "-16px",
+          right: "14px",
+          width: "14px",
+          height: "20px",
+          background: "#555",
+          border: "2px solid #333",
+        }}
+      >
+        {/* Smoke wisps */}
+        <div
+          style={{
+            position: "absolute",
+            top: "-6px",
+            left: "3px",
+            width: "4px",
+            height: "4px",
+            background: "rgba(150,150,150,0.5)",
+            borderRadius: "50%",
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            top: "-10px",
+            left: "6px",
+            width: "3px",
+            height: "3px",
+            background: "rgba(150,150,150,0.3)",
+            borderRadius: "50%",
+          }}
+        />
+      </div>
+
       {/* Main building */}
       <div
         style={{
           width: "120px",
           height: `${totalHeight}px`,
-          background: "#B8956A",
-          border: "2px solid #8B7340",
+          background: "#5A4030",
+          border: "2px solid #3A2818",
           borderBottom: "none",
           position: "relative",
         }}
       >
         {/* Plank lines */}
-        {Array.from({ length: Math.floor(totalHeight / 14) }).map((_, i) => (
+        {Array.from({ length: Math.floor(totalHeight / 10) }).map((_, i) => (
           <div
             key={i}
             style={{
               position: "absolute",
-              top: `${i * 14}px`,
+              top: `${i * 10}px`,
               left: 0,
               right: 0,
               height: "1px",
-              background: "rgba(0,0,0,0.1)",
+              background: "rgba(0,0,0,0.15)",
             }}
           />
         ))}
 
-        {/* Sign with star */}
+        {/* Sign */}
         <div
           style={{
             position: "absolute",
             top: "4px",
             left: "50%",
             transform: "translateX(-50%)",
-            background: "#8B7340",
+            background: "#3A2818",
             padding: "3px 6px",
-            border: "1px solid #6B5530",
+            border: "1px solid #2A1808",
             fontFamily: "'Press Start 2P', monospace",
             fontSize: "5px",
-            color: "#F4E4C1",
+            color: "#E8A040",
             whiteSpace: "nowrap",
-            display: "flex",
-            alignItems: "center",
-            gap: "3px",
           }}
         >
-          {name || "SHERIFF"}
+          {name || "SMITH"}
         </div>
 
         {/* Floor overlays for completed/error */}
@@ -95,7 +129,7 @@ export default function SheriffOffice({ agents, name }: SheriffOfficeProps) {
                   left: "4px",
                   right: "4px",
                   height: "2px",
-                  background: "#8B7340",
+                  background: "#3A2818",
                 }}
               />
             )}
@@ -109,52 +143,54 @@ export default function SheriffOffice({ agents, name }: SheriffOfficeProps) {
                 justifyContent: "space-between",
               }}
             >
-              <FloorWindow state={agent.state} width={16} height={14} borderColor="#8B7340" />
-              <FloorWindow state={agent.state} width={16} height={14} borderColor="#8B7340" />
+              <FloorWindow state={agent.state} width={18} height={14} borderColor="#3A2818" />
+              <FloorWindow state={agent.state} width={18} height={14} borderColor="#3A2818" />
             </div>
           </div>
         ))}
 
-        {/* Door */}
+        {/* Open forge area */}
         <div
           style={{
             position: "absolute",
             bottom: "0",
-            left: "50%",
-            transform: "translateX(-50%)",
-            width: "24px",
-            height: "26px",
-            background: "#6B5530",
-            border: "2px solid #4A3A20",
+            left: "10px",
+            width: "36px",
+            height: "24px",
+            background: "#2A1808",
+            border: "2px solid #1A0A00",
           }}
-        />
+        >
+          {/* Forge glow */}
+          <div
+            style={{
+              position: "absolute",
+              bottom: "2px",
+              left: "50%",
+              transform: "translateX(-50%)",
+              width: "16px",
+              height: "8px",
+              background: "#E85020",
+              boxShadow: "0 0 6px 2px rgba(232,80,32,0.4)",
+              borderRadius: "2px 2px 0 0",
+            }}
+          />
+        </div>
 
-        {/* Bars on one window (it's a jail!) */}
+        {/* Anvil */}
         <div
           style={{
             position: "absolute",
-            bottom: "12px",
-            right: "12px",
+            bottom: "0",
+            right: "20px",
             width: "16px",
-            height: "14px",
-            background: "#555",
-            border: "2px solid #333",
+            height: "10px",
+            background: "#666",
+            border: "1px solid #444",
+            borderBottom: "none",
+            borderRadius: "2px 6px 0 0",
           }}
-        >
-          {[0, 1, 2].map((i) => (
-            <div
-              key={i}
-              style={{
-                position: "absolute",
-                top: 0,
-                left: `${2 + i * 5}px`,
-                width: "1px",
-                height: "100%",
-                background: "#888",
-              }}
-            />
-          ))}
-        </div>
+        />
       </div>
     </div>
   );

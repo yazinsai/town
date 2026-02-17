@@ -3,9 +3,10 @@ import FloorWindow from "./FloorWindow";
 
 interface SaloonProps {
   agents: { state: AgentState }[];
+  name?: string;
 }
 
-export default function Saloon({ agents }: SaloonProps) {
+export default function Saloon({ agents, name }: SaloonProps) {
   const floors = agents.length;
   const baseHeight = 80;
   const floorHeight = 24;
@@ -55,7 +56,7 @@ export default function Saloon({ agents }: SaloonProps) {
             whiteSpace: "nowrap",
           }}
         >
-          SALOON
+          {name || "SALOON"}
         </div>
 
         {/* Floor overlays for completed/error */}

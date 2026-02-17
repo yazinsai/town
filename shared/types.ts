@@ -2,7 +2,11 @@ export type BuildingStyle =
   | "saloon"
   | "bank"
   | "sheriff"
-  | "general-store";
+  | "general-store"
+  | "hotel"
+  | "masjid"
+  | "blacksmith"
+  | "post-office";
 
 export type AgentState =
   | "busy"

@@ -3,9 +3,10 @@ import FloorWindow from "./FloorWindow";
 
 interface BankProps {
   agents: { state: AgentState }[];
+  name?: string;
 }
 
-export default function Bank({ agents }: BankProps) {
+export default function Bank({ agents, name }: BankProps) {
   const floors = agents.length;
   const baseHeight = 90;
   const floorHeight = 24;
@@ -53,7 +54,7 @@ export default function Bank({ agents }: BankProps) {
             whiteSpace: "nowrap",
           }}
         >
-          BANK
+          {name || "BANK"}
         </div>
 
         {/* Columns */}

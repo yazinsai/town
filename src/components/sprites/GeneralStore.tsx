@@ -3,9 +3,10 @@ import FloorWindow from "./FloorWindow";
 
 interface GeneralStoreProps {
   agents: { state: AgentState }[];
+  name?: string;
 }
 
-export default function GeneralStore({ agents }: GeneralStoreProps) {
+export default function GeneralStore({ agents, name }: GeneralStoreProps) {
   const floors = agents.length;
   const baseHeight = 80;
   const floorHeight = 24;
@@ -40,7 +41,7 @@ export default function GeneralStore({ agents }: GeneralStoreProps) {
             whiteSpace: "nowrap",
           }}
         >
-          STORE
+          {name || "STORE"}
         </div>
 
         {/* Floor overlays for completed/error */}

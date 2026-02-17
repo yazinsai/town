@@ -8,13 +8,17 @@ import Saloon from "../sprites/Saloon";
 import Bank from "../sprites/Bank";
 import SheriffOffice from "../sprites/SheriffOffice";
 import GeneralStore from "../sprites/GeneralStore";
+import Hotel from "../sprites/Hotel";
+import Masjid from "../sprites/Masjid";
+import Blacksmith from "../sprites/Blacksmith";
+import PostOffice from "../sprites/PostOffice";
 
 interface NewBuildingProps {
   onClose: () => void;
   onCreated: () => void;
 }
 
-type SpriteProps = { agents: { state: AgentState }[] };
+type SpriteProps = { agents: { state: AgentState }[]; name?: string };
 const previewAgents: { state: AgentState }[] = [{ state: "idle" }];
 
 const styles: { value: BuildingStyle; label: string; Sprite: React.FC<SpriteProps> }[] = [
@@ -22,6 +26,10 @@ const styles: { value: BuildingStyle; label: string; Sprite: React.FC<SpriteProp
   { value: "bank", label: "Bank", Sprite: Bank },
   { value: "sheriff", label: "Sheriff", Sprite: SheriffOffice },
   { value: "general-store", label: "Store", Sprite: GeneralStore },
+  { value: "hotel", label: "Hotel", Sprite: Hotel },
+  { value: "masjid", label: "Masjid", Sprite: Masjid },
+  { value: "blacksmith", label: "Smith", Sprite: Blacksmith },
+  { value: "post-office", label: "Post", Sprite: PostOffice },
 ];
 
 export default function NewBuilding({ onClose, onCreated }: NewBuildingProps) {
@@ -189,7 +197,7 @@ export default function NewBuilding({ onClose, onCreated }: NewBuildingProps) {
         <PixelText variant="small" color="#D2B48C" style={{ marginBottom: "8px" }}>
           STYLE
         </PixelText>
-        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: "12px", overflowX: "auto", paddingBottom: "4px" }}>
           {styles.map(({ value, label, Sprite }) => (
             <div
               key={value}
@@ -206,10 +214,13 @@ export default function NewBuilding({ onClose, onCreated }: NewBuildingProps) {
                 flexDirection: "column",
                 alignItems: "center",
                 gap: "4px",
+                flexShrink: 0,
               }}
             >
-              <div style={{ transform: "scale(0.5)", transformOrigin: "bottom center", height: "45px" }}>
-                <Sprite agents={previewAgents} />
+              <div style={{ width: "60px", height: "50px", position: "relative", overflow: "visible" }}>
+                <div style={{ position: "absolute", bottom: 0, left: "50%", transform: "translateX(-50%) scale(0.5)", transformOrigin: "bottom center" }}>
+                  <Sprite agents={previewAgents} />
+                </div>
               </div>
               <PixelText
                 variant="small"
