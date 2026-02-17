@@ -99,29 +99,48 @@ export default function Building({
       <div style={{ position: "relative" }}>
         <BuildingSprite style={building.buildingStyle} agents={floorAgents} name={building.name} />
 
-        {/* Per-floor speech bubbles */}
+        {/* Clickable floor zones + speech bubbles */}
         {agents.map((agent, floorIndex) => {
+          const top = layout.buildingTop + layout.windowStart + floorIndex * FLOOR_HEIGHT - 2;
           const bubbleType = getBubbleType(agent.state);
-          if (!bubbleType) return null;
-          if (bubbleType === "completed" && seenAgents.has(agent.id)) return null;
-
-          const top = layout.buildingTop + layout.windowStart + floorIndex * FLOOR_HEIGHT;
+          const showBubble = bubbleType && !(bubbleType === "completed" && seenAgents.has(agent.id));
 
           return (
-            <div
-              key={agent.id}
-              style={{
-                position: "absolute",
-                top: `${top}px`,
-                left: "100%",
-                marginLeft: "4px",
-                zIndex: 10,
-              }}
-            >
-              <SpeechBubble
-                type={bubbleType}
-                onClick={() => onBubbleClick(agent)}
+            <div key={agent.id}>
+              {/* Clickable floor area */}
+              <div
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onBubbleClick(agent);
+                }}
+                style={{
+                  position: "absolute",
+                  top: `${top}px`,
+                  left: 0,
+                  right: 0,
+                  height: `${FLOOR_HEIGHT}px`,
+                  cursor: "pointer",
+                  zIndex: 5,
+                }}
               />
+
+              {/* Speech bubble */}
+              {showBubble && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: `${top}px`,
+                    left: "100%",
+                    marginLeft: "4px",
+                    zIndex: 10,
+                  }}
+                >
+                  <SpeechBubble
+                    type={bubbleType}
+                    onClick={() => onBubbleClick(agent)}
+                  />
+                </div>
+              )}
             </div>
           );
         })}

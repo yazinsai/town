@@ -280,8 +280,9 @@ export default function ConversationLog({ entries }: ConversationLogProps) {
         display: "flex",
         flexDirection: "column",
         padding: "8px",
-        overflowY: "auto",
-        maxHeight: "300px",
+        overflowY: "scroll",
+        maxHeight: "40vh",
+        overscrollBehavior: "contain",
       }}
     >
       {entries.map((entry, i) => (
