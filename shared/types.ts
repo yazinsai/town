@@ -41,6 +41,13 @@ export interface Agent {
   pendingPermission: PendingPermission | null;
 }
 
+export interface TrashedBuilding {
+  buildingId: string;
+  trashedAt: string; // ISO 8601
+  building: Building;
+  agents: Agent[];
+}
+
 export interface PendingQuestion {
   questions: Array<{
     question: string;
@@ -105,4 +112,5 @@ export type WSEvent =
   | { type: "agent:completed"; agentId: string }
   | { type: "agent:error"; agentId: string; error: string }
   | { type: "building:created"; building: Building }
-  | { type: "building:removed"; buildingId: string };
+  | { type: "building:removed"; buildingId: string }
+  | { type: "building:restored"; building: Building };
