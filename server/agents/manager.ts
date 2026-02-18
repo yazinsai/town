@@ -60,7 +60,11 @@ function makeCallbacks(agentId: string): AgentCallbacks {
         if (building) {
           const result = await mergeWorktree(building.projectPath, agent.branchName, building.id);
           if (result.success) {
-            await cleanupWorktree(building.projectPath, agent.worktreePath, agent.branchName);
+            try {
+              await cleanupWorktree(building.projectPath, agent.worktreePath, agent.branchName);
+            } catch (err: any) {
+              console.error(`[worktree] cleanup failed for ${agentId}:`, err);
+            }
             await storage.updateAgent(agentId, {
               mergeStatus: "merged",
               mergeCommitSha: result.mergeCommitSha || null,

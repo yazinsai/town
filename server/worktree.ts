@@ -35,8 +35,7 @@ export async function createWorktree(
   projectPath: string,
   agentId: string
 ): Promise<WorktreeInfo> {
-  const shortId = agentId.slice(0, 8);
-  const branchName = `agent/${shortId}`;
+  const branchName = `agent/${agentId}`;
   const worktreePath = `${projectPath}/.worktrees/${agentId}`;
 
   // Create the .worktrees directory if needed
@@ -76,7 +75,8 @@ export async function mergeWorktree(
   const lockPromise = new Promise<void>((resolve) => {
     releaseLock = resolve;
   });
-  mergeLocks.set(buildingId, existing.then(() => lockPromise));
+  const chainedPromise = existing.then(() => lockPromise);
+  mergeLocks.set(buildingId, chainedPromise);
 
   try {
     await existing; // Wait for any prior merge on this building
@@ -105,8 +105,7 @@ export async function mergeWorktree(
   } finally {
     releaseLock!();
     // Clean up lock if nothing else is queued after us
-    const current = mergeLocks.get(buildingId);
-    if (current === lockPromise) mergeLocks.delete(buildingId);
+    if (mergeLocks.get(buildingId) === chainedPromise) mergeLocks.delete(buildingId);
   }
 }
 
