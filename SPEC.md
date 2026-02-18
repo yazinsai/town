@@ -53,7 +53,7 @@ All idle/waiting states show a speech bubble. The bubble icon/color differentiat
 - **Rendering**: HTML/CSS sprites — div-based pixel art, CSS animations. Architected so canvas (PixiJS) can replace later if needed
 - **Storage**: File-based JSON (`~/.claude-town/` or project-local `data/`)
 - **Real-time**: WebSocket for live state updates between server and all connected clients
-- **Deployment**: Dokku at `town.whhite.com`
+- **Deployment**: Dokku (domain configured via `TUNNEL_DOMAIN` env var)
 - **Auth**: Simple password protection (single shared password, stored as env var)
 
 ---
