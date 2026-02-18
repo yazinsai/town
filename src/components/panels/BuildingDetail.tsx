@@ -147,7 +147,7 @@ function AgentFloor({
             style={{
               lineHeight: "12px",
               ...(isFinished && { textDecoration: "line-through", textDecorationColor: style.accent }),
-              ...(!expanded && { display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as const, overflow: "hidden" }),
+              display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as const, overflow: "hidden",
             }}
           >
             {displayAgent.currentTask || displayAgent.initialPrompt}
@@ -156,7 +156,16 @@ function AgentFloor({
 
         {expanded && (
           <div style={{ borderTop: `1px solid ${style.border}` }}>
-            <ConversationLog entries={conversation} />
+            <ConversationLog
+              entries={[
+                {
+                  timestamp: displayAgent.createdAt || new Date().toISOString(),
+                  role: "user" as const,
+                  content: displayAgent.initialPrompt,
+                },
+                ...conversation,
+              ]}
+            />
 
             {/* Message input */}
             <div style={{ padding: "8px", borderTop: `1px solid ${style.border}` }}>
