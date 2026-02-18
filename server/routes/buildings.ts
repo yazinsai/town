@@ -4,6 +4,7 @@ import { normalize } from "path";
 import * as storage from "../storage";
 import { createAgent, killAgent } from "../agents/manager";
 import { broadcast } from "../websocket";
+import { discardWorktree } from "../worktree";
 import { saveImages, buildPromptWithImages } from "../images";
 import { PROJECTS_ROOT } from "./projects";
 import type { CreateBuildingRequest, SpawnAgentRequest } from "../../shared/types";
@@ -88,9 +89,13 @@ app.delete("/:id", async (c) => {
   const building = storage.getBuilding(c.req.param("id"));
   if (!building) return c.json({ error: "Building not found" }, 404);
 
-  // Kill active agents
+  // Kill active agents and discard pending worktrees
   for (const agentId of building.agents) {
     try {
+      const agent = storage.getAgent(agentId);
+      if (agent?.worktreePath && agent?.branchName && agent.mergeStatus === "pending") {
+        await discardWorktree(building.projectPath, agent.worktreePath, agent.branchName);
+      }
       await killAgent(agentId);
     } catch {
       // Agent might already be dead

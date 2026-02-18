@@ -221,7 +221,11 @@ export default function App() {
       lastEvent.type === "agent:question" ||
       lastEvent.type === "agent:permission" ||
       lastEvent.type === "agent:completed" ||
-      lastEvent.type === "agent:error"
+      lastEvent.type === "agent:error" ||
+      lastEvent.type === "agent:merged" ||
+      lastEvent.type === "agent:merge-failed" ||
+      lastEvent.type === "agent:discarded" ||
+      lastEvent.type === "agent:reverted"
     ) {
       // Re-fetch all agents (simple approach)
       const fetchAll = async () => {
