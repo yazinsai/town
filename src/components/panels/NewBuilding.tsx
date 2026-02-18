@@ -40,6 +40,7 @@ export default function NewBuilding({ onClose, onCreated }: NewBuildingProps) {
   const [buildingStyle, setBuildingStyle] = useState<BuildingStyle>("saloon");
   const [initialPrompt, setInitialPrompt] = useState("");
   const [suggestions, setSuggestions] = useState<ProjectInfo[]>([]);
+  const [projectsRoot, setProjectsRoot] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -60,7 +61,10 @@ export default function NewBuilding({ onClose, onCreated }: NewBuildingProps) {
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       getProjects(projectPath || undefined)
-        .then(setSuggestions)
+        .then(({ root, dirs }) => {
+          if (root) setProjectsRoot(root);
+          setSuggestions(dirs);
+        })
         .catch(() => {});
     }, 150);
     return () => clearTimeout(debounceRef.current);
@@ -127,23 +131,42 @@ export default function NewBuilding({ onClose, onCreated }: NewBuildingProps) {
           onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
           placeholder="/path/to/project"
         />
-        {showSuggestions && suggestions.length > 0 && (
-          <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#F4E4C1", border: "2px solid #8B4513", maxHeight: "120px", overflowY: "auto", zIndex: 10 }}>
-            {suggestions.map((p) => (
-              <div key={p.path} style={{ display: "flex", alignItems: "center", borderBottom: "1px solid #D2B48C" }}>
+        {showSuggestions && (() => {
+          const trimmed = projectPath.trim();
+          const isSimpleName = trimmed.length > 0 && !trimmed.includes("/");
+          const hasExactMatch = suggestions.some((s) => s.name.toLowerCase() === trimmed.toLowerCase());
+          const showCreate = isSimpleName && !hasExactMatch && projectsRoot;
+          if (!showCreate && suggestions.length === 0) return null;
+          return (
+            <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#F4E4C1", border: "2px solid #8B4513", maxHeight: "120px", overflowY: "auto", zIndex: 10 }}>
+              {showCreate && (
                 <div
-                  onClick={() => { setProjectPath(p.path); if (!name) setName(p.name); setShowSuggestions(false); }}
-                  style={{ flex: 1, padding: "6px 8px", fontFamily: "'Press Start 2P', monospace", fontSize: "6px", color: "#2C1810", cursor: "pointer" }}
-                >{p.name}</div>
-                <div
-                  onClick={(e) => { e.stopPropagation(); setProjectPath(p.path + "/"); }}
-                  style={{ padding: "6px 10px", fontFamily: "'Press Start 2P', monospace", fontSize: "8px", color: "#8B4513", cursor: "pointer", borderLeft: "1px solid #D2B48C" }}
-                  title="Browse subdirectories"
-                >&gt;</div>
-              </div>
-            ))}
-          </div>
-        )}
+                  key="__create__"
+                  onClick={() => {
+                    const newPath = `${projectsRoot}/${trimmed}`;
+                    setProjectPath(newPath);
+                    if (!name) setName(trimmed);
+                    setShowSuggestions(false);
+                  }}
+                  style={{ padding: "6px 8px", fontFamily: "'Press Start 2P', monospace", fontSize: "6px", color: "#4A7C59", cursor: "pointer", borderBottom: "1px solid #D2B48C", background: "rgba(74,124,89,0.08)" }}
+                >+ Create "{trimmed}"</div>
+              )}
+              {suggestions.map((p) => (
+                <div key={p.path} style={{ display: "flex", alignItems: "center", borderBottom: "1px solid #D2B48C" }}>
+                  <div
+                    onClick={() => { setProjectPath(p.path); if (!name) setName(p.name); setShowSuggestions(false); }}
+                    style={{ flex: 1, padding: "6px 8px", fontFamily: "'Press Start 2P', monospace", fontSize: "6px", color: "#2C1810", cursor: "pointer" }}
+                  >{p.name}</div>
+                  <div
+                    onClick={(e) => { e.stopPropagation(); setProjectPath(p.path + "/"); }}
+                    style={{ padding: "6px 10px", fontFamily: "'Press Start 2P', monospace", fontSize: "8px", color: "#8B4513", cursor: "pointer", borderLeft: "1px solid #D2B48C" }}
+                    title="Browse subdirectories"
+                  >&gt;</div>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Building style selector */}

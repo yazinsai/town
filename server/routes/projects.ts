@@ -5,7 +5,7 @@ import { homedir } from "os";
 
 const app = new Hono();
 
-const PROJECTS_ROOT = join(homedir(), "ai", "projects");
+export const PROJECTS_ROOT = join(homedir(), "ai", "projects");
 
 function listDirs(dir: string): { name: string; path: string }[] {
   try {
@@ -34,7 +34,7 @@ app.get("/", (c) => {
   const query = c.req.query("q") || "";
 
   if (!query) {
-    return c.json(listDirs(PROJECTS_ROOT));
+    return c.json({ root: PROJECTS_ROOT, dirs: listDirs(PROJECTS_ROOT) });
   }
 
   // If it's not an absolute path, treat as a search within PROJECTS_ROOT
@@ -43,12 +43,12 @@ app.get("/", (c) => {
     const dirs = listDirs(PROJECTS_ROOT).filter((d) =>
       d.name.toLowerCase().includes(search)
     );
-    return c.json(dirs);
+    return c.json({ root: PROJECTS_ROOT, dirs });
   }
 
   // If query ends with /, list contents of that directory
   if (query.endsWith("/")) {
-    return c.json(listDirs(query));
+    return c.json({ root: PROJECTS_ROOT, dirs: listDirs(query) });
   }
 
   // Otherwise, list the parent dir filtered by prefix
@@ -57,7 +57,7 @@ app.get("/", (c) => {
   const dirs = listDirs(parent).filter((d) =>
     d.name.toLowerCase().includes(prefix)
   );
-  return c.json(dirs);
+  return c.json({ root: PROJECTS_ROOT, dirs });
 });
 
 export default app;

@@ -122,9 +122,14 @@ export interface ProjectInfo {
   path: string;
 }
 
-export async function getProjects(query?: string): Promise<ProjectInfo[]> {
+export interface ProjectsResponse {
+  root: string;
+  dirs: ProjectInfo[];
+}
+
+export async function getProjects(query?: string): Promise<ProjectsResponse> {
   const params = query ? `?q=${encodeURIComponent(query)}` : "";
-  return apiFetch<ProjectInfo[]>(`/projects${params}`);
+  return apiFetch<ProjectsResponse>(`/projects${params}`);
 }
 
 export async function getTrashedBuildings(): Promise<TrashedBuilding[]> {

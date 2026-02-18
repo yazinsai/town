@@ -1,9 +1,11 @@
 import { Hono } from "hono";
-import { existsSync } from "fs";
+import { existsSync, mkdirSync } from "fs";
+import { normalize } from "path";
 import * as storage from "../storage";
 import { createAgent, killAgent } from "../agents/manager";
 import { broadcast } from "../websocket";
 import { saveImages, buildPromptWithImages } from "../images";
+import { PROJECTS_ROOT } from "./projects";
 import type { CreateBuildingRequest, SpawnAgentRequest } from "../../shared/types";
 
 const app = new Hono();
@@ -33,7 +35,13 @@ app.post("/", async (c) => {
     }
 
     if (!existsSync(body.projectPath)) {
-      return c.json({ error: `Project path does not exist: ${body.projectPath}` }, 400);
+      // Allow creating new project dirs that are direct children of PROJECTS_ROOT
+      const normalized = normalize(body.projectPath);
+      if (normalized.startsWith(PROJECTS_ROOT + "/") && !normalized.slice(PROJECTS_ROOT.length + 1).includes("/")) {
+        mkdirSync(normalized, { recursive: true });
+      } else {
+        return c.json({ error: `Project path does not exist: ${body.projectPath}` }, 400);
+      }
     }
 
     const building = await storage.createBuilding({
