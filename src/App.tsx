@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type { Building, Agent } from "@shared/types";
 import { login, checkAuth, getBuilding, getTrashedBuildings } from "./lib/api";
 import { useWebSocket } from "./hooks/useWebSocket";
@@ -105,12 +105,29 @@ export default function App() {
   const [authed, setAuthed] = useState(false);
   const [checking, setChecking] = useState(true);
 
-  // Check if already authenticated via cookie on mount
+  // Check if already authenticated via cookie or auto-login via ?p= URL param
   useEffect(() => {
-    checkAuth().then((ok) => {
+    const params = new URLSearchParams(window.location.search);
+    const p = params.get("p");
+
+    async function init() {
+      if (p) {
+        const ok = await login(p);
+        if (ok) {
+          params.delete("p");
+          const clean = params.toString();
+          window.history.replaceState({}, "", window.location.pathname + (clean ? `?${clean}` : ""));
+          setAuthed(true);
+          setChecking(false);
+          return;
+        }
+      }
+      const ok = await checkAuth();
       setAuthed(ok);
       setChecking(false);
-    });
+    }
+
+    init();
   }, []);
   const { lastEvent, connected } = useWebSocket(authed);
   const { buildings, refetch } = useBuildings(lastEvent);
@@ -151,6 +168,9 @@ export default function App() {
     }
   }, [lastEvent, refreshTrashCount]);
 
+  // Auto-mark already-terminal agents as seen on first load
+  const initialLoadDone = useRef(false);
+
   // Fetch agent details for all buildings
   useEffect(() => {
     if (!authed || buildings.length === 0) return;
@@ -168,6 +188,24 @@ export default function App() {
         })
       );
       setAgentsByBuilding(results);
+
+      // On first load, auto-mark completed/error agents as seen
+      // so only NEW state transitions show bubbles
+      if (!initialLoadDone.current) {
+        initialLoadDone.current = true;
+        const terminalIds = Object.values(results)
+          .flat()
+          .filter((a) => a.state === "completed" || a.state === "error")
+          .map((a) => a.id);
+        if (terminalIds.length > 0) {
+          setSeenAgents((prev) => {
+            const next = new Set(prev);
+            terminalIds.forEach((id) => next.add(id));
+            saveSeenAgents(next);
+            return next;
+          });
+        }
+      }
     }
 
     fetchAgents();

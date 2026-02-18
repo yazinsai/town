@@ -4,6 +4,7 @@
 import QRCode from "qrcode";
 
 const VITE_PORT = 5173;
+const TOWN_PASSWORD = process.env.TOWN_PASSWORD || "claude2024";
 const URL_PATTERN = /https:\/\/[a-z0-9-]+\.trycloudflare\.com/;
 
 const proc = Bun.spawn(
@@ -29,7 +30,7 @@ while (true) {
     if (match) {
       urlFound = true;
       buffer = "";
-      const url = match[0];
+      const url = `${match[0]}?p=${encodeURIComponent(TOWN_PASSWORD)}`;
       const qr = await QRCode.toString(url, { type: "terminal", small: true });
       console.log("\n" + qr);
       console.log(`  📱 Scan to open: ${url}\n`);

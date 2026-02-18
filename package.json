@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently -k -n server,vite -c blue,green \"bun run dev:server\" \"bun run dev:vite\"",
-    "dev:expose": "concurrently -k -n server,vite,tunnel -c blue,green,yellow \"bun run dev:server\" \"bun run dev:vite\" \"bun scripts/tunnel.ts\"",
+    "dev:expose": "TOWN_PASSWORD=$(openssl rand -hex 8) concurrently -k -n server,vite,tunnel -c blue,green,yellow \"bun run dev:server\" \"bun run dev:vite\" \"bun scripts/tunnel.ts\"",
     "dev:server": "bun --hot server/index.ts",
     "dev:vite": "vite",
     "build": "vite build",
