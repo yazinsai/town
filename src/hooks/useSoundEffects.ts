@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import type { WSEvent } from "@shared/types";
-import { playWaitingSound, playCompletedSound, getMuted, setMuted } from "../lib/sounds";
+import { playWaitingSound, playCompletedSound, getMuted, setMuted, initAudio } from "../lib/sounds";
 
 export function useSoundEffects(lastEvent: WSEvent | null) {
   const [muted, _setMuted] = useState(() => getMuted());
   const processedRef = useRef(new Set<string>());
 
   function toggleMute() {
+    initAudio();
     const next = !muted;
     _setMuted(next);
     setMuted(next);

@@ -3,7 +3,12 @@ const MUTE_KEY = "claude-town-muted";
 let audioCtx: AudioContext | null = null;
 
 function getCtx(): AudioContext {
-  if (!audioCtx) audioCtx = new AudioContext();
+  if (!audioCtx || audioCtx.state === "closed") {
+    audioCtx = new AudioContext();
+  }
+  if (audioCtx.state === "suspended") {
+    audioCtx.resume();
+  }
   return audioCtx;
 }
 
@@ -17,6 +22,10 @@ export function setMuted(muted: boolean) {
 
 export function getMuted(): boolean {
   return isMuted();
+}
+
+export function initAudio() {
+  getCtx();
 }
 
 function playNote(
