@@ -4,10 +4,11 @@ import { createBunWebSocket } from "hono/bun";
 import { cors } from "hono/cors";
 import { authMiddleware } from "./auth";
 import { addClient, removeClient } from "./websocket";
-import { initStorage } from "./storage";
+import { initStorage, purgeExpiredTrash } from "./storage";
 import buildingRoutes from "./routes/buildings";
 import agentRoutes from "./routes/agents";
 import projectRoutes from "./routes/projects";
+import trashRoutes from "./routes/trash";
 
 const { upgradeWebSocket, websocket } = createBunWebSocket();
 
@@ -62,6 +63,7 @@ app.get(
 app.route("/api/buildings", buildingRoutes);
 app.route("/api/agents", agentRoutes);
 app.route("/api/projects", projectRoutes);
+app.route("/api/trash", trashRoutes);
 
 // Health check
 app.get("/api/health", (c) => c.json({ status: "ok" }));
@@ -74,6 +76,16 @@ if (process.env.NODE_ENV === "production") {
 
 // Initialize storage on startup
 await initStorage();
+
+// Purge expired trash on startup
+const purged = await purgeExpiredTrash();
+if (purged > 0) console.log(`Purged ${purged} expired trashed buildings`);
+
+// Purge expired trash every hour
+setInterval(async () => {
+  const n = await purgeExpiredTrash();
+  if (n > 0) console.log(`Purged ${n} expired trashed buildings`);
+}, 60 * 60 * 1000);
 
 const port = parseInt(process.env.PORT || "3000");
 

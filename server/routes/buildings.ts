@@ -89,7 +89,7 @@ app.delete("/:id", async (c) => {
     }
   }
 
-  await storage.removeBuilding(building.id);
+  await storage.trashBuilding(building.id);
   broadcast({ type: "building:removed", buildingId: building.id });
 
   return c.json({ success: true });
