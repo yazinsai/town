@@ -3,7 +3,6 @@ import type {
   SDKMessage,
   SDKAssistantMessage,
   SDKResultMessage,
-  SDKUserMessage,
   Query,
 } from "@anthropic-ai/claude-agent-sdk";
 import type { ConversationEntry, PendingQuestion, PendingPermission } from "../../shared/types";
@@ -16,10 +15,6 @@ export interface AgentCallbacks {
   onComplete: () => void;
   onError: (error: string) => void;
   onSessionId: (sessionId: string) => void;
-}
-
-interface PendingResolver {
-  resolve: (msg: SDKUserMessage) => void;
 }
 
 export interface AgentSession {
@@ -49,6 +44,11 @@ export function createSession(
   const abortController = new AbortController();
   let sessionId = resumeSessionId || "";
 
+  // Pending resolvers — allow respondToQuestion/respondToPermission to
+  // wake up the paused canUseTool callback
+  let pendingQuestionResolver: ((answers: Record<string, string>) => void) | null = null;
+  let pendingPermissionResolver: ((approved: boolean) => void) | null = null;
+
   // Build system prompt — always append town-specific instructions
   const townInstructions = [
     "You are running inside Claude Town, a visual agent orchestrator.",
@@ -68,6 +68,67 @@ export function createSession(
     append: appendText,
   };
 
+  // canUseTool — intercepts AskUserQuestion and ExitPlanMode to pause
+  // the SDK and wait for user input via the UI
+  const canUseTool = async (toolName: string, input: any) => {
+    if (toolName === "AskUserQuestion") {
+      const questions = (input.questions || []).map((q: any) => ({
+        question: q.question || "",
+        header: q.header || "",
+        options: (q.options || []).map((o: any) => ({
+          label: o.label || "",
+          description: o.description || "",
+        })),
+        multiSelect: q.multiSelect || false,
+      }));
+
+      // Notify UI
+      callbacks.onStateChange("waiting_input");
+      callbacks.onQuestion({ questions });
+
+      // Pause until user answers
+      const answers = await new Promise<Record<string, string>>((resolve) => {
+        pendingQuestionResolver = resolve;
+      });
+
+      // Feed the answer back into the SDK
+      return {
+        behavior: "allow" as const,
+        updatedInput: { questions: input.questions, answers },
+      };
+    }
+
+    if (toolName === "ExitPlanMode") {
+      // Surface plan approval as a question
+      callbacks.onStateChange("waiting_input");
+      callbacks.onQuestion({
+        questions: [{
+          question: "The agent has a plan ready. Approve it?",
+          header: "Plan",
+          options: [
+            { label: "Approve", description: "Proceed with the plan as described" },
+            { label: "Reject", description: "Send the agent back to revise" },
+          ],
+          multiSelect: false,
+        }],
+      });
+
+      const answers = await new Promise<Record<string, string>>((resolve) => {
+        pendingQuestionResolver = resolve;
+      });
+
+      // Check if user approved
+      const answer = Object.values(answers)[0] || "";
+      if (answer.toLowerCase().includes("reject")) {
+        return { behavior: "deny" as const, message: answer };
+      }
+      return { behavior: "allow" as const, updatedInput: input };
+    }
+
+    // Auto-approve everything else (bypassPermissions mode)
+    return { behavior: "allow" as const, updatedInput: input };
+  };
+
   // Build query options
   const queryOptions: Record<string, unknown> = {
     cwd,
@@ -77,6 +138,7 @@ export function createSession(
     tools: { type: "preset", preset: "claude_code" },
     settingSources: ["user", "project"],
     abortController,
+    canUseTool,
     stderr: (data: string) => {
       console.error(`[agent:${agentId.slice(0, 8)}] ${data}`);
     },
@@ -129,24 +191,33 @@ export function createSession(
     abortController,
     sendMessage: (_message: string) => {
       // In resume mode, follow-ups create a new session via manager.respawnSession
-      // This is kept for AskUserQuestion responses during an active query
       console.warn(`[agent:${agentId.slice(0, 8)}] sendMessage not supported in resume mode`);
     },
     respondToQuestion: (answers: Record<string, string>) => {
       callbacks.onStateChange("busy");
-      // For AskUserQuestion during an active query, we can't push messages
-      // The manager will respawn with the answer as a new prompt
-      const answerText = Object.entries(answers)
-        .map(([q, a]) => `${q}: ${a}`)
-        .join("\n");
-      console.warn(`[agent:${agentId.slice(0, 8)}] respondToQuestion: ${answerText}`);
+      if (pendingQuestionResolver) {
+        pendingQuestionResolver(answers);
+        pendingQuestionResolver = null;
+      }
     },
     respondToPermission: (approved: boolean) => {
       callbacks.onStateChange("busy");
-      console.warn(`[agent:${agentId.slice(0, 8)}] respondToPermission: ${approved}`);
+      if (pendingPermissionResolver) {
+        pendingPermissionResolver(approved);
+        pendingPermissionResolver = null;
+      }
     },
     kill: () => {
       abortController.abort();
+      // Resolve any pending promises so they don't leak
+      if (pendingQuestionResolver) {
+        pendingQuestionResolver({});
+        pendingQuestionResolver = null;
+      }
+      if (pendingPermissionResolver) {
+        pendingPermissionResolver(false);
+        pendingPermissionResolver = null;
+      }
       q.return(undefined);
       sessions.delete(agentId);
     },
@@ -164,14 +235,7 @@ function handleMessage(
 ) {
   switch (message.type) {
     case "system": {
-      if (message.subtype === "init") {
-        callbacks.onMessage({
-          timestamp: new Date().toISOString(),
-          role: "system",
-          content: `Session initialized. Model: ${message.model}`,
-          metadata: { tools: message.tools },
-        });
-      }
+      // Skip init messages — they're noise in the conversation log
       break;
     }
 
@@ -188,37 +252,7 @@ function handleMessage(
             content: block.text,
           });
         } else if (block.type === "tool_use") {
-          // Check for AskUserQuestion
-          if (block.name === "AskUserQuestion") {
-            const input = block.input as any;
-            callbacks.onStateChange("waiting_input");
-            callbacks.onQuestion({
-              questions: (input.questions || []).map((q: any) => ({
-                question: q.question || "",
-                header: q.header || "",
-                options: (q.options || []).map((o: any) => ({
-                  label: o.label || "",
-                  description: o.description || "",
-                })),
-                multiSelect: q.multiSelect || false,
-              })),
-            });
-          } else if (block.name === "ExitPlanMode") {
-            // Plan approval — surface as a question so user can approve/reject
-            callbacks.onStateChange("waiting_input");
-            callbacks.onQuestion({
-              questions: [{
-                question: "The agent has a plan ready. Approve it?",
-                header: "Plan",
-                options: [
-                  { label: "Approve", description: "Proceed with the plan as described" },
-                  { label: "Reject", description: "Send the agent back to revise" },
-                ],
-                multiSelect: false,
-              }],
-            });
-          } else if (block.name === "EnterPlanMode") {
-            // Just log it — agent is entering plan mode
+          if (block.name === "EnterPlanMode") {
             callbacks.onMessage({
               timestamp: new Date().toISOString(),
               role: "tool_call",
@@ -226,6 +260,14 @@ function handleMessage(
               metadata: { toolName: block.name, input: block.input, toolUseId: block.id },
             });
             callbacks.onStateChange("busy", "Planning...");
+          } else if (block.name === "AskUserQuestion" || block.name === "ExitPlanMode") {
+            // These are handled by canUseTool — just log the call
+            callbacks.onMessage({
+              timestamp: new Date().toISOString(),
+              role: "tool_call",
+              content: block.name,
+              metadata: { toolName: block.name, input: block.input, toolUseId: block.id },
+            });
           } else {
             // Regular tool use
             callbacks.onMessage({

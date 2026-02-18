@@ -127,18 +127,24 @@ export async function respondToAgent(
   }
 
   // Log the user response
-  await storage.appendConversation(agentId, {
+  let userContent: string;
+  if (request.type === "answer") {
+    userContent = Object.entries(request.answers || {})
+      .map(([q, a]) => `${q}: ${a}`)
+      .join("\n");
+  } else if (request.type === "permission") {
+    userContent = request.approved ? "Approved" : "Denied";
+  } else {
+    userContent = request.message || "";
+  }
+
+  const entry: ConversationEntry = {
     timestamp: new Date().toISOString(),
     role: "user",
-    content:
-      request.type === "answer"
-        ? JSON.stringify(request.answers)
-        : request.type === "permission"
-          ? request.approved
-            ? "Approved"
-            : "Denied"
-          : request.message || "",
-  });
+    content: userContent,
+  };
+  await storage.appendConversation(agentId, entry);
+  broadcast({ type: "agent:message", agentId, entry });
 
   // Clear pending state
   await storage.updateAgent(agentId, {
