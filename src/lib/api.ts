@@ -5,6 +5,7 @@ import type {
   SpawnAgentRequest,
   RespondToAgentRequest,
   ConversationEntry,
+  TrashedBuilding,
 } from "@shared/types";
 
 let authenticated = false;
@@ -124,4 +125,16 @@ export interface ProjectInfo {
 export async function getProjects(query?: string): Promise<ProjectInfo[]> {
   const params = query ? `?q=${encodeURIComponent(query)}` : "";
   return apiFetch<ProjectInfo[]>(`/projects${params}`);
+}
+
+export async function getTrashedBuildings(): Promise<TrashedBuilding[]> {
+  return apiFetch<TrashedBuilding[]>("/trash");
+}
+
+export async function restoreBuilding(id: string): Promise<{ building: Building }> {
+  return apiFetch<{ building: Building }>(`/trash/${id}/restore`, { method: "POST" });
+}
+
+export async function permanentDeleteTrash(id: string): Promise<void> {
+  return apiFetch<void>(`/trash/${id}`, { method: "DELETE" });
 }
