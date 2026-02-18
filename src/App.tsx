@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
 import type { Building, Agent } from "@shared/types";
-import { login, checkAuth, getBuilding } from "./lib/api";
+import { login, checkAuth, getBuilding, getTrashedBuildings } from "./lib/api";
 import { useWebSocket } from "./hooks/useWebSocket";
 import { useBuildings } from "./hooks/useBuildings";
 import TownScene from "./components/town/TownScene";
 import NewBuilding from "./components/panels/NewBuilding";
 import BuildingDetail from "./components/panels/BuildingDetail";
 import QuickResponse from "./components/panels/QuickResponse";
+import TrashPanel from "./components/panels/TrashPanel";
 import PixelButton from "./components/ui/PixelButton";
 import PixelInput from "./components/ui/PixelInput";
 import PixelText from "./components/ui/PixelText";
@@ -31,7 +32,8 @@ type Panel =
   | { type: "none" }
   | { type: "newBuilding" }
   | { type: "buildingDetail"; building: Building; focusedAgentId?: string }
-  | { type: "quickResponse"; agent: Agent };
+  | { type: "quickResponse"; agent: Agent }
+  | { type: "trash" };
 
 function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const [password, setPassword] = useState("");
@@ -115,6 +117,7 @@ export default function App() {
   const [panel, setPanel] = useState<Panel>({ type: "none" });
   const [agentsByBuilding, setAgentsByBuilding] = useState<Record<string, Agent[]>>({});
   const [seenAgents, setSeenAgents] = useState(() => loadSeenAgents());
+  const [trashCount, setTrashCount] = useState(0);
 
   const markAgentSeen = useCallback((agentId: string) => {
     setSeenAgents((prev) => {
@@ -125,6 +128,28 @@ export default function App() {
       return next;
     });
   }, []);
+
+  const refreshTrashCount = useCallback(async () => {
+    try {
+      const trashed = await getTrashedBuildings();
+      setTrashCount(trashed.length);
+    } catch {
+      setTrashCount(0);
+    }
+  }, []);
+
+  // Fetch trash count on mount
+  useEffect(() => {
+    if (authed) refreshTrashCount();
+  }, [authed, refreshTrashCount]);
+
+  // Refresh trash count on building:removed and building:restored events
+  useEffect(() => {
+    if (!lastEvent) return;
+    if (lastEvent.type === "building:removed" || lastEvent.type === "building:restored") {
+      refreshTrashCount();
+    }
+  }, [lastEvent, refreshTrashCount]);
 
   // Fetch agent details for all buildings
   useEffect(() => {
@@ -206,6 +231,14 @@ export default function App() {
         connected={connected}
       />
 
+      {trashCount > 0 && (
+        <div style={{ position: "fixed", bottom: 16, right: 16, zIndex: 80 }}>
+          <PixelButton variant="ghost" onClick={() => setPanel({ type: "trash" })}>
+            TRASH ({trashCount})
+          </PixelButton>
+        </div>
+      )}
+
       {/* Overlay backdrop for panels */}
       {panel.type !== "none" && (
         <div
@@ -251,6 +284,17 @@ export default function App() {
         <QuickResponse
           agent={panel.agent}
           onClose={() => setPanel({ type: "none" })}
+        />
+      )}
+
+      {panel.type === "trash" && (
+        <TrashPanel
+          onClose={() => setPanel({ type: "none" })}
+          onRestored={() => {
+            setPanel({ type: "none" });
+            refetch();
+            refreshTrashCount();
+          }}
         />
       )}
     </div>
