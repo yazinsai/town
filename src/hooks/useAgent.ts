@@ -33,7 +33,15 @@ export function useAgent(agentId: string | null, lastEvent: WSEvent | null) {
 
     if ("agentId" in lastEvent && lastEvent.agentId === agentId) {
       if (lastEvent.type === "agent:message") {
-        setConversation((prev) => [...prev, lastEvent.entry]);
+        setConversation((prev) => {
+          // Deduplicate — resumed sessions can replay messages already in the list
+          const e = lastEvent.entry;
+          const isDupe = prev.some(
+            (p) => p.timestamp === e.timestamp && p.role === e.role && p.content === e.content
+          );
+          if (isDupe) return prev;
+          return [...prev, e];
+        });
       } else if (lastEvent.type === "agent:state") {
         setAgent((prev) =>
           prev
