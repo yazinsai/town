@@ -76,7 +76,7 @@ export default function TrashPanel({ onClose, onRestored }: TrashPanelProps) {
                   {item.building.name.toUpperCase()}
                 </PixelText>
                 <PixelText variant="small" color="#A0826A" style={{ marginTop: "4px" }}>
-                  {item.building.style} &bull; {timeRemaining(item.trashedAt)}
+                  {item.building.buildingStyle} &bull; {timeRemaining(item.trashedAt)}
                 </PixelText>
               </div>
               <PixelButton
