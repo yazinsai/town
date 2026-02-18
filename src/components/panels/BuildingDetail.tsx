@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import type { Building, Agent, WSEvent } from "@shared/types";
-import { getBuilding, spawnAgent, killAgent, deleteBuilding, respondToAgent } from "../../lib/api";
+import { getBuilding, spawnAgent, killAgent, deleteBuilding, respondToAgent, mergeAgent, discardAgent, revertAgent } from "../../lib/api";
 import { useAgent } from "../../hooks/useAgent";
 import { useImageAttachments } from "../../hooks/useImageAttachments";
 import { ImageThumbnails, AttachButton, HiddenFileInput } from "../ui/ImageAttachments";
@@ -196,12 +196,46 @@ function AgentFloor({
             </div>
 
             {/* Actions */}
-            <div style={{ padding: "0 8px 8px", display: "flex", gap: "6px" }}>
+            <div style={{ padding: "0 8px 8px", display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center" }}>
               {(displayAgent.state === "waiting_input" || displayAgent.state === "waiting_permission") && (
                 <PixelButton onClick={() => onBubbleClick(displayAgent)}>RESPOND</PixelButton>
               )}
               {!isFinished && (
                 <PixelButton variant="danger" onClick={async () => { await killAgent(agent.id); }}>KILL</PixelButton>
+              )}
+
+              {/* Worktree merge/discard actions */}
+              {displayAgent.mergeStatus === "pending" && isFinished && (
+                <>
+                  <PixelButton onClick={async () => {
+                    try { await mergeAgent(agent.id); } catch (err: any) { alert(`Merge failed: ${err.message}`); }
+                  }}>MERGE</PixelButton>
+                  <PixelButton variant="danger" onClick={async () => {
+                    if (!window.confirm("Discard this agent's changes? This cannot be undone.")) return;
+                    try { await discardAgent(agent.id); } catch (err: any) { alert(`Discard failed: ${err.message}`); }
+                  }}>DISCARD</PixelButton>
+                </>
+              )}
+              {displayAgent.mergeStatus === "merged" && (
+                <PixelButton variant="danger" onClick={async () => {
+                  if (!window.confirm("Undo this merge? The agent's changes will be reverted.")) return;
+                  try { await revertAgent(agent.id); } catch (err: any) { alert(`Revert failed: ${err.message}`); }
+                }}>UNDO MERGE</PixelButton>
+              )}
+
+              {/* Merge status indicator */}
+              {displayAgent.mergeStatus && (
+                <PixelText variant="small" color={
+                  displayAgent.mergeStatus === "merged" ? "#4CAF50" :
+                  displayAgent.mergeStatus === "reverted" ? "#FF9800" :
+                  displayAgent.mergeStatus === "discarded" ? "#9E9E9E" :
+                  "#D2B48C"
+                }>
+                  {displayAgent.mergeStatus === "merged" ? "MERGED" :
+                   displayAgent.mergeStatus === "reverted" ? "REVERTED" :
+                   displayAgent.mergeStatus === "discarded" ? "DISCARDED" :
+                   "UNMERGED"}
+                </PixelText>
               )}
             </div>
           </div>
@@ -253,7 +287,15 @@ export default function BuildingDetail({
 
   useEffect(() => {
     if (!lastEvent) return;
-    if (lastEvent.type === "agent:state" || lastEvent.type === "agent:completed" || lastEvent.type === "agent:error") {
+    if (
+      lastEvent.type === "agent:state" ||
+      lastEvent.type === "agent:completed" ||
+      lastEvent.type === "agent:error" ||
+      lastEvent.type === "agent:merged" ||
+      lastEvent.type === "agent:merge-failed" ||
+      lastEvent.type === "agent:discarded" ||
+      lastEvent.type === "agent:reverted"
+    ) {
       fetchDetail();
     }
   }, [lastEvent]);

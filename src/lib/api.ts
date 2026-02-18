@@ -143,3 +143,15 @@ export async function restoreBuilding(id: string): Promise<{ building: Building 
 export async function permanentDeleteTrash(id: string): Promise<void> {
   return apiFetch<void>(`/trash/${id}`, { method: "DELETE" });
 }
+
+export async function mergeAgent(id: string): Promise<{ mergeCommitSha?: string }> {
+  return apiFetch<{ mergeCommitSha?: string }>(`/agents/${id}/merge`, { method: "POST" });
+}
+
+export async function discardAgent(id: string): Promise<void> {
+  return apiFetch<void>(`/agents/${id}/discard`, { method: "POST" });
+}
+
+export async function revertAgent(id: string): Promise<void> {
+  return apiFetch<void>(`/agents/${id}/revert`, { method: "POST" });
+}
