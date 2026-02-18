@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import type { Building, WSEvent } from "@shared/types";
 import { getBuildings } from "../lib/api";
 
-export function useBuildings(lastEvent: WSEvent | null) {
+export function useBuildings(lastEvent: WSEvent | null, enabled: boolean) {
   const [buildings, setBuildings] = useState<Building[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -18,8 +18,8 @@ export function useBuildings(lastEvent: WSEvent | null) {
   }, []);
 
   useEffect(() => {
-    fetch();
-  }, [fetch]);
+    if (enabled) fetch();
+  }, [fetch, enabled]);
 
   useEffect(() => {
     if (!lastEvent) return;

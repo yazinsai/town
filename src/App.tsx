@@ -130,7 +130,7 @@ export default function App() {
     init();
   }, []);
   const { lastEvent, connected } = useWebSocket(authed);
-  const { buildings, refetch } = useBuildings(lastEvent);
+  const { buildings, refetch } = useBuildings(lastEvent, authed);
   const [panel, setPanel] = useState<Panel>({ type: "none" });
   const [agentsByBuilding, setAgentsByBuilding] = useState<Record<string, Agent[]>>({});
   const [seenAgents, setSeenAgents] = useState(() => loadSeenAgents());
