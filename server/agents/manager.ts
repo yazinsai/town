@@ -2,6 +2,7 @@ import { createSession, killSession, getSession } from "./sdk";
 import type { AgentCallbacks } from "./sdk";
 import * as storage from "../storage";
 import { broadcast } from "../websocket";
+import { isGitRepo, createWorktree, mergeWorktree, cleanupWorktree } from "../worktree";
 import type { AgentState, ConversationEntry, RespondToAgentRequest } from "../../shared/types";
 
 function makeCallbacks(agentId: string): AgentCallbacks {
@@ -51,6 +52,26 @@ function makeCallbacks(agentId: string): AgentCallbacks {
         pendingPermission: null,
       });
       broadcast({ type: "agent:completed", agentId });
+
+      // Auto-merge worktree branch into main
+      const agent = storage.getAgent(agentId);
+      if (agent?.worktreePath && agent?.branchName && agent.mergeStatus === "pending") {
+        const building = storage.getBuilding(agent.buildingId);
+        if (building) {
+          const result = await mergeWorktree(building.projectPath, agent.branchName, building.id);
+          if (result.success) {
+            await cleanupWorktree(building.projectPath, agent.worktreePath, agent.branchName);
+            await storage.updateAgent(agentId, {
+              mergeStatus: "merged",
+              mergeCommitSha: result.mergeCommitSha || null,
+              worktreePath: null,
+            });
+            broadcast({ type: "agent:merged", agentId });
+          } else {
+            broadcast({ type: "agent:merge-failed", agentId, error: result.error || "Merge conflict" });
+          }
+        }
+      }
     },
 
     onError: async (error: string) => {
@@ -89,8 +110,25 @@ export async function createAgent(
     broadcast({ type: "building:created", building });
   }
 
+  // Set up worktree if project is a git repo
+  let agentCwd = cwd;
+  if (await isGitRepo(cwd)) {
+    try {
+      const wt = await createWorktree(cwd, agent.id);
+      await storage.updateAgent(agent.id, {
+        worktreePath: wt.worktreePath,
+        branchName: wt.branchName,
+        mergeStatus: "pending",
+      });
+      agentCwd = wt.worktreePath;
+    } catch (err: any) {
+      console.error(`[worktree] Failed to create worktree for ${agent.id}: ${err.message}`);
+      // Fall back to direct cwd
+    }
+  }
+
   const callbacks = makeCallbacks(agent.id);
-  createSession(agent.id, cwd, initialPrompt, callbacks, customSystemPrompt);
+  createSession(agent.id, agentCwd, initialPrompt, callbacks, customSystemPrompt);
 
   return agent.id;
 }
@@ -106,10 +144,13 @@ function respawnSession(agentId: string, message: string) {
   const building = storage.getBuilding(agent.buildingId);
   if (!building) throw new Error(`Building ${agent.buildingId} not found`);
 
+  // Use worktree path if available, otherwise fall back to project path
+  const cwd = agent.worktreePath || building.projectPath;
+
   const callbacks = makeCallbacks(agentId);
   createSession(
     agentId,
-    building.projectPath,
+    cwd,
     message,
     callbacks,
     agent.customSystemPrompt || undefined,
