@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently -k -n server,vite -c blue,green \"bun run dev:server\" \"bun run dev:vite\"",
+    "dev:expose": "concurrently -k -n server,vite,tunnel -c blue,green,yellow \"bun run dev:server\" \"bun run dev:vite\" \"bun scripts/tunnel.ts\"",
     "dev:server": "bun --hot server/index.ts",
     "dev:vite": "vite",
     "build": "vite build",
@@ -20,12 +21,14 @@
   "devDependencies": {
     "@tailwindcss/vite": "^4.0.0",
     "@types/bun": "latest",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@types/uuid": "^10.0.0",
     "@vitejs/plugin-react": "^4.3.0",
     "autoprefixer": "^10.4.0",
     "concurrently": "^9.1.0",
+    "qrcode": "^1.5.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tailwindcss": "^4.0.0",
