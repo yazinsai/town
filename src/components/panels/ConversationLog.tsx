@@ -85,24 +85,40 @@ function InlineQuestion({
   }> | undefined;
 
   const [submitting, setSubmitting] = useState(false);
-  const [submittedAnswer, setSubmittedAnswer] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState(false);
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
 
   if (!questions?.length) return null;
 
-  const canInteract = isWaitingInput && agentId && !submittedAnswer;
+  const isSingleQuestion = questions.length === 1;
+  const canInteract = isWaitingInput && agentId && !submitted;
 
-  async function handleSelect(questionText: string, optLabel: string) {
-    if (!agentId || !canInteract) return;
+  function handleOptionClick(questionText: string, optLabel: string) {
+    if (!canInteract) return;
+
+    if (isSingleQuestion) {
+      // Single question: auto-submit immediately
+      submitAnswers({ [questionText]: optLabel });
+    } else {
+      // Multiple questions: just select, wait for submit button
+      setSelectedAnswers(prev => ({ ...prev, [questionText]: optLabel }));
+    }
+  }
+
+  async function submitAnswers(answers: Record<string, string>) {
+    if (!agentId) return;
     setSubmitting(true);
     try {
-      await respondToAgent(agentId, { type: "answer", answers: { [questionText]: optLabel } });
-      setSubmittedAnswer(optLabel);
+      await respondToAgent(agentId, { type: "answer", answers });
+      setSubmitted(true);
     } catch (err) {
       console.error("Failed to answer:", err);
     } finally {
       setSubmitting(false);
     }
   }
+
+  const allAnswered = !isSingleQuestion && questions.every(q => selectedAnswers[q.question]);
 
   return (
     <div style={{ marginBottom: "6px" }}>
@@ -118,17 +134,17 @@ function InlineQuestion({
           </PixelText>
           <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
             {q.options.map((opt, oi) => {
-              const isChosen = submittedAnswer === opt.label;
+              const isSelected = selectedAnswers[q.question] === opt.label;
               return (
                 <div
                   key={oi}
-                  onClick={() => handleSelect(q.question, opt.label)}
+                  onClick={() => handleOptionClick(q.question, opt.label)}
                   style={{
                     padding: "5px 7px",
-                    background: isChosen ? "rgba(76,175,80,0.2)" : "rgba(139,69,19,0.12)",
-                    border: `2px solid ${isChosen ? "#4CAF50" : "#5C3317"}`,
+                    background: isSelected ? "rgba(76,175,80,0.2)" : "rgba(139,69,19,0.12)",
+                    border: `2px solid ${isSelected ? "#4CAF50" : "#5C3317"}`,
                     cursor: canInteract ? "pointer" : "default",
-                    opacity: submittedAnswer && !isChosen ? 0.4 : canInteract ? 1 : 0.6,
+                    opacity: submitted && !isSelected ? 0.4 : canInteract ? 1 : 0.6,
                     transition: "border-color 0.15s, background 0.15s, opacity 0.15s",
                   }}
                 >
@@ -144,6 +160,25 @@ function InlineQuestion({
           </div>
         </div>
       ))}
+      {!isSingleQuestion && canInteract && (
+        <div
+          onClick={() => allAnswered && !submitting && submitAnswers(selectedAnswers)}
+          style={{
+            marginTop: "6px",
+            padding: "6px 10px",
+            background: allAnswered ? "rgba(76,175,80,0.25)" : "rgba(139,69,19,0.12)",
+            border: `2px solid ${allAnswered ? "#4CAF50" : "#5C3317"}`,
+            cursor: allAnswered && !submitting ? "pointer" : "default",
+            opacity: allAnswered ? 1 : 0.4,
+            textAlign: "center",
+            transition: "all 0.15s",
+          }}
+        >
+          <PixelText variant="small" color={allAnswered ? "#4CAF50" : "#A0826A"}>
+            {submitting ? "Submitting..." : allAnswered ? "Submit Answers" : `Answer all questions (${Object.keys(selectedAnswers).length}/${questions.length})`}
+          </PixelText>
+        </div>
+      )}
     </div>
   );
 }
