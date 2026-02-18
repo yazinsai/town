@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import type { Building, Agent } from "@shared/types";
 import { login, checkAuth, getBuilding, getTrashedBuildings } from "./lib/api";
 import { useWebSocket } from "./hooks/useWebSocket";
+import { useSoundEffects } from "./hooks/useSoundEffects";
 import { useBuildings } from "./hooks/useBuildings";
 import TownScene from "./components/town/TownScene";
 import NewBuilding from "./components/panels/NewBuilding";
@@ -130,6 +131,7 @@ export default function App() {
     init();
   }, []);
   const { lastEvent, connected } = useWebSocket(authed);
+  const { muted, toggleMute } = useSoundEffects(lastEvent);
   const { buildings, refetch } = useBuildings(lastEvent, authed);
   const [panel, setPanel] = useState<Panel>({ type: "none" });
   const [agentsByBuilding, setAgentsByBuilding] = useState<Record<string, Agent[]>>({});
@@ -267,6 +269,8 @@ export default function App() {
         }}
         onNewBuilding={() => setPanel({ type: "newBuilding" })}
         connected={connected}
+        muted={muted}
+        onToggleMute={toggleMute}
       />
 
       {trashCount > 0 && (

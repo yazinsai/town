@@ -13,6 +13,8 @@ interface TownSceneProps {
   onBubbleClick: (agent: Agent, building: BuildingType) => void;
   onNewBuilding: () => void;
   connected: boolean;
+  muted: boolean;
+  onToggleMute: () => void;
 }
 
 export default function TownScene({
@@ -23,6 +25,8 @@ export default function TownScene({
   onBubbleClick,
   onNewBuilding,
   connected,
+  muted,
+  onToggleMute,
 }: TownSceneProps) {
   const theme = useTimeOfDay();
 
@@ -37,7 +41,7 @@ export default function TownScene({
         background: theme.sceneBg,
       }}
     >
-      {/* Connection indicator */}
+      {/* Top-right indicators */}
       <div
         style={{
           position: "fixed",
@@ -49,6 +53,21 @@ export default function TownScene({
           gap: "6px",
         }}
       >
+        {/* Mute toggle */}
+        <div
+          onClick={onToggleMute}
+          title={muted ? "Unmute sounds" : "Mute sounds"}
+          style={{
+            cursor: "pointer",
+            opacity: muted ? 0.4 : 0.8,
+          }}
+        >
+          <PixelText variant="small" color="#F4E4C1">
+            {muted ? "MUTE" : "SFX"}
+          </PixelText>
+        </div>
+        <div style={{ width: "1px", height: "10px", background: "#8B4513" }} />
+        {/* Connection indicator */}
         <div
           style={{
             width: "6px",
