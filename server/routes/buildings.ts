@@ -1,7 +1,9 @@
 import { Hono } from "hono";
+import { existsSync } from "fs";
 import * as storage from "../storage";
 import { createAgent, killAgent } from "../agents/manager";
 import { broadcast } from "../websocket";
+import { saveImages, buildPromptWithImages } from "../images";
 import type { CreateBuildingRequest, SpawnAgentRequest } from "../../shared/types";
 
 const app = new Hono();
@@ -30,10 +32,7 @@ app.post("/", async (c) => {
       return c.json({ error: "name, projectPath, and initialPrompt are required" }, 400);
     }
 
-    // Validate project path exists
-    const dir = Bun.file(body.projectPath);
-    const fs = await import("fs");
-    if (!fs.existsSync(body.projectPath)) {
+    if (!existsSync(body.projectPath)) {
       return c.json({ error: `Project path does not exist: ${body.projectPath}` }, 400);
     }
 
@@ -43,10 +42,17 @@ app.post("/", async (c) => {
       buildingStyle: body.buildingStyle || "saloon",
     });
 
+    // Handle images
+    let prompt = body.initialPrompt;
+    if (body.images && body.images.length > 0) {
+      const paths = saveImages(body.images, body.projectPath);
+      prompt = buildPromptWithImages(prompt, paths);
+    }
+
     // Spawn first agent
     const agentId = await createAgent(
       building.id,
-      body.initialPrompt,
+      prompt,
       body.projectPath,
       body.customSystemPrompt
     );
@@ -100,9 +106,16 @@ app.post("/:id/agents", async (c) => {
       return c.json({ error: "initialPrompt is required" }, 400);
     }
 
+    // Handle images
+    let prompt = body.initialPrompt;
+    if (body.images && body.images.length > 0) {
+      const paths = saveImages(body.images, building.projectPath);
+      prompt = buildPromptWithImages(prompt, paths);
+    }
+
     const agentId = await createAgent(
       building.id,
-      body.initialPrompt,
+      prompt,
       building.projectPath,
       body.customSystemPrompt
     );

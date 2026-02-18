@@ -62,6 +62,12 @@ export interface ConversationEntry {
   metadata?: Record<string, unknown>;
 }
 
+export interface ImageAttachment {
+  name: string;
+  mediaType: string;
+  data: string; // base64
+}
+
 // API request/response types
 export interface CreateBuildingRequest {
   name: string;
@@ -69,6 +75,7 @@ export interface CreateBuildingRequest {
   buildingStyle: BuildingStyle;
   initialPrompt: string;
   customSystemPrompt?: string;
+  images?: ImageAttachment[];
 }
 
 export interface RespondToAgentRequest {
@@ -79,11 +86,14 @@ export interface RespondToAgentRequest {
   approved?: boolean;
   // For message type
   message?: string;
+  // Optional image attachments
+  images?: ImageAttachment[];
 }
 
 export interface SpawnAgentRequest {
   initialPrompt: string;
   customSystemPrompt?: string;
+  images?: ImageAttachment[];
 }
 
 // WebSocket event types

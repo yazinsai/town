@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import * as storage from "../storage";
 import { respondToAgent, killAgent } from "../agents/manager";
+import { saveImages, buildPromptWithImages } from "../images";
 import type { RespondToAgentRequest } from "../../shared/types";
 
 const app = new Hono();
@@ -21,6 +22,15 @@ app.post("/:id/respond", async (c) => {
     const body = await c.req.json<RespondToAgentRequest>();
     if (!body.type) {
       return c.json({ error: "type is required (answer, permission, or message)" }, 400);
+    }
+
+    // Handle images: save to disk and append paths to message
+    if (body.images && body.images.length > 0 && body.type === "message" && body.message) {
+      const building = storage.getBuilding(agent.buildingId);
+      if (building) {
+        const paths = saveImages(body.images, building.projectPath);
+        body.message = buildPromptWithImages(body.message, paths);
+      }
     }
 
     await respondToAgent(agent.id, body);

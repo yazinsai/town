@@ -1,4 +1,5 @@
 import type { Building as BuildingType, Agent } from "@shared/types";
+import { useTimeOfDay } from "../../hooks/useTimeOfDay";
 import Sky from "./Sky";
 import Road from "./Road";
 import Building from "./Building";
@@ -23,6 +24,8 @@ export default function TownScene({
   onNewBuilding,
   connected,
 }: TownSceneProps) {
+  const theme = useTimeOfDay();
+
   return (
     <div
       style={{
@@ -31,7 +34,7 @@ export default function TownScene({
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
-        background: "#2C1810",
+        background: theme.sceneBg,
       }}
     >
       {/* Connection indicator */}
@@ -74,13 +77,13 @@ export default function TownScene({
       </div>
 
       {/* Sky */}
-      <Sky />
+      <Sky theme={theme} />
 
       {/* Buildings area */}
       <div
         style={{
           flex: 1,
-          background: "linear-gradient(to bottom, #D48540 0%, #C88E50 15%, #BE9458 35%, #B89B5E 60%, #C4A265 85%, #C4A86A 100%)",
+          background: theme.ground.gradient,
           display: "flex",
           alignItems: "flex-end",
           overflowX: "auto",
@@ -117,21 +120,23 @@ export default function TownScene({
             style={{
               width: "80px",
               height: "60px",
-              border: "3px dashed #8B7340",
+              border: `3px dashed ${theme.ground.borderTop}`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               cursor: "pointer",
-              background: "rgba(139,69,19,0.15)",
+              background: theme.period === "night"
+                ? "rgba(40,50,70,0.3)"
+                : "rgba(139,69,19,0.15)",
             }}
           >
-            <PixelText variant="h1" color="#8B7340">
+            <PixelText variant="h1" color={theme.ground.borderTop}>
               +
             </PixelText>
           </div>
           <PixelText
             variant="small"
-            color="#6B5530"
+            color={theme.ground.borderTop}
             style={{ marginTop: "6px" }}
           >
             BUILD
@@ -140,7 +145,7 @@ export default function TownScene({
       </div>
 
       {/* Road */}
-      <Road />
+      <Road theme={theme} />
     </div>
   );
 }

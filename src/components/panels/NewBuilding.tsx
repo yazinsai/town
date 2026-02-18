@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import type { AgentState, BuildingStyle } from "@shared/types";
 import { createBuilding, getProjects, type ProjectInfo } from "../../lib/api";
+import { useImageAttachments } from "../../hooks/useImageAttachments";
+import { ImageThumbnails, AttachButton, HiddenFileInput } from "../ui/ImageAttachments";
 import PixelButton from "../ui/PixelButton";
 import PixelInput from "../ui/PixelInput";
 import PixelText from "../ui/PixelText";
@@ -42,8 +44,18 @@ export default function NewBuilding({ onClose, onCreated }: NewBuildingProps) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Fetch suggestions dynamically as user types
+  const {
+    images, dragging, fileInputRef,
+    removeImage, openFilePicker, bindPaste,
+    dragHandlers, handleFileInputChange,
+  } = useImageAttachments();
+
+  useEffect(() => {
+    return bindPaste(textareaRef.current);
+  }, [bindPaste]);
+
   useEffect(() => {
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
@@ -62,7 +74,13 @@ export default function NewBuilding({ onClose, onCreated }: NewBuildingProps) {
     setSubmitting(true);
     setError("");
     try {
-      await createBuilding({ name, projectPath, buildingStyle, initialPrompt });
+      await createBuilding({
+        name,
+        projectPath,
+        buildingStyle,
+        initialPrompt,
+        images: images.length > 0 ? images : undefined,
+      });
       onCreated();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed");
@@ -88,104 +106,40 @@ export default function NewBuilding({ onClose, onCreated }: NewBuildingProps) {
         overflowY: "auto",
       }}
     >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "16px",
-        }}
-      >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
         <PixelText variant="h2">NEW BUILDING</PixelText>
-        <PixelButton variant="ghost" onClick={onClose}>
-          X
-        </PixelButton>
+        <PixelButton variant="ghost" onClick={onClose}>X</PixelButton>
       </div>
 
       {/* Name */}
       <div style={{ marginBottom: "12px" }}>
-        <PixelText variant="small" color="#D2B48C" style={{ marginBottom: "4px" }}>
-          NAME
-        </PixelText>
-        <PixelInput
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="My Project"
-        />
+        <PixelText variant="small" color="#D2B48C" style={{ marginBottom: "4px" }}>NAME</PixelText>
+        <PixelInput value={name} onChange={(e) => setName(e.target.value)} placeholder="My Project" />
       </div>
 
       {/* Project path */}
       <div style={{ marginBottom: "12px", position: "relative" }}>
-        <PixelText variant="small" color="#D2B48C" style={{ marginBottom: "4px" }}>
-          PROJECT PATH
-        </PixelText>
+        <PixelText variant="small" color="#D2B48C" style={{ marginBottom: "4px" }}>PROJECT PATH</PixelText>
         <PixelInput
           value={projectPath}
-          onChange={(e) => {
-            setProjectPath(e.target.value);
-            setShowSuggestions(true);
-          }}
+          onChange={(e) => { setProjectPath(e.target.value); setShowSuggestions(true); }}
           onFocus={() => setShowSuggestions(true)}
           onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
           placeholder="/path/to/project"
         />
         {showSuggestions && suggestions.length > 0 && (
-          <div
-            style={{
-              position: "absolute",
-              top: "100%",
-              left: 0,
-              right: 0,
-              background: "#F4E4C1",
-              border: "2px solid #8B4513",
-              maxHeight: "120px",
-              overflowY: "auto",
-              zIndex: 10,
-            }}
-          >
+          <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#F4E4C1", border: "2px solid #8B4513", maxHeight: "120px", overflowY: "auto", zIndex: 10 }}>
             {suggestions.map((p) => (
-              <div
-                key={p.path}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  borderBottom: "1px solid #D2B48C",
-                }}
-              >
+              <div key={p.path} style={{ display: "flex", alignItems: "center", borderBottom: "1px solid #D2B48C" }}>
                 <div
-                  onClick={() => {
-                    setProjectPath(p.path);
-                    if (!name) setName(p.name);
-                    setShowSuggestions(false);
-                  }}
-                  style={{
-                    flex: 1,
-                    padding: "6px 8px",
-                    fontFamily: "'Press Start 2P', monospace",
-                    fontSize: "6px",
-                    color: "#2C1810",
-                    cursor: "pointer",
-                  }}
-                >
-                  {p.name}
-                </div>
+                  onClick={() => { setProjectPath(p.path); if (!name) setName(p.name); setShowSuggestions(false); }}
+                  style={{ flex: 1, padding: "6px 8px", fontFamily: "'Press Start 2P', monospace", fontSize: "6px", color: "#2C1810", cursor: "pointer" }}
+                >{p.name}</div>
                 <div
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setProjectPath(p.path + "/");
-                  }}
-                  style={{
-                    padding: "6px 10px",
-                    fontFamily: "'Press Start 2P', monospace",
-                    fontSize: "8px",
-                    color: "#8B4513",
-                    cursor: "pointer",
-                    borderLeft: "1px solid #D2B48C",
-                  }}
+                  onClick={(e) => { e.stopPropagation(); setProjectPath(p.path + "/"); }}
+                  style={{ padding: "6px 10px", fontFamily: "'Press Start 2P', monospace", fontSize: "8px", color: "#8B4513", cursor: "pointer", borderLeft: "1px solid #D2B48C" }}
                   title="Browse subdirectories"
-                >
-                  &gt;
-                </div>
+                >&gt;</div>
               </div>
             ))}
           </div>
@@ -194,27 +148,17 @@ export default function NewBuilding({ onClose, onCreated }: NewBuildingProps) {
 
       {/* Building style selector */}
       <div style={{ marginBottom: "12px" }}>
-        <PixelText variant="small" color="#D2B48C" style={{ marginBottom: "8px" }}>
-          STYLE
-        </PixelText>
+        <PixelText variant="small" color="#D2B48C" style={{ marginBottom: "8px" }}>STYLE</PixelText>
         <div style={{ display: "flex", gap: "12px", overflowX: "auto", paddingBottom: "4px" }}>
           {styles.map(({ value, label, Sprite }) => (
             <div
               key={value}
               onClick={() => setBuildingStyle(value)}
               style={{
-                cursor: "pointer",
-                padding: "8px",
+                cursor: "pointer", padding: "8px",
                 border: `2px solid ${buildingStyle === value ? "#E8C55A" : "#5C3317"}`,
-                background:
-                  buildingStyle === value
-                    ? "rgba(232,197,90,0.1)"
-                    : "transparent",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: "4px",
-                flexShrink: 0,
+                background: buildingStyle === value ? "rgba(232,197,90,0.1)" : "transparent",
+                display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", flexShrink: 0,
               }}
             >
               <div style={{ width: "60px", height: "50px", position: "relative", overflow: "visible" }}>
@@ -222,12 +166,7 @@ export default function NewBuilding({ onClose, onCreated }: NewBuildingProps) {
                   <Sprite agents={previewAgents} />
                 </div>
               </div>
-              <PixelText
-                variant="small"
-                color={buildingStyle === value ? "#E8C55A" : "#D2B48C"}
-              >
-                {label}
-              </PixelText>
+              <PixelText variant="small" color={buildingStyle === value ? "#E8C55A" : "#D2B48C"}>{label}</PixelText>
             </div>
           ))}
         </div>
@@ -235,42 +174,56 @@ export default function NewBuilding({ onClose, onCreated }: NewBuildingProps) {
 
       {/* Initial prompt */}
       <div style={{ marginBottom: "16px" }}>
-        <PixelText variant="small" color="#D2B48C" style={{ marginBottom: "4px" }}>
-          INITIAL PROMPT
-        </PixelText>
-        <textarea
-          value={initialPrompt}
-          onChange={(e) => setInitialPrompt(e.target.value)}
-          placeholder="What should the agent work on?"
-          rows={3}
+        <PixelText variant="small" color="#D2B48C" style={{ marginBottom: "4px" }}>INITIAL PROMPT</PixelText>
+
+        {/* Image thumbnails above textarea */}
+        {images.length > 0 && (
+          <ImageThumbnails images={images} onRemove={removeImage} />
+        )}
+
+        <div
+          {...dragHandlers}
           style={{
-            fontFamily: "'Press Start 2P', monospace",
-            fontSize: "8px",
-            padding: "8px 10px",
-            background: "#F4E4C1",
-            color: "#2C1810",
-            border: "2px solid #8B4513",
-            borderRadius: 0,
-            outline: "none",
-            width: "100%",
-            boxSizing: "border-box",
-            resize: "vertical",
-            lineHeight: "14px",
+            position: "relative",
+            display: "flex",
+            border: `2px solid ${dragging ? "#E8C55A" : "#8B4513"}`,
+            transition: "border-color 0.15s",
           }}
-        />
+        >
+          <textarea
+            ref={textareaRef}
+            value={initialPrompt}
+            onChange={(e) => setInitialPrompt(e.target.value)}
+            placeholder="What should the agent work on?"
+            rows={3}
+            style={{
+              fontFamily: "'Press Start 2P', monospace",
+              fontSize: "8px",
+              padding: "8px 10px",
+              background: "#F4E4C1",
+              color: "#2C1810",
+              border: "none",
+              borderRadius: 0,
+              outline: "none",
+              flex: 1,
+              boxSizing: "border-box",
+              resize: "vertical",
+              lineHeight: "14px",
+              display: "block",
+            }}
+          />
+          <div style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end", background: "#F4E4C1" }}>
+            <AttachButton onClick={openFilePicker} hasImages={images.length > 0} />
+          </div>
+          <HiddenFileInput inputRef={fileInputRef} onChange={handleFileInputChange} />
+        </div>
       </div>
 
       {error && (
-        <PixelText variant="small" color="#F44336" style={{ marginBottom: "8px" }}>
-          {error}
-        </PixelText>
+        <PixelText variant="small" color="#F44336" style={{ marginBottom: "8px" }}>{error}</PixelText>
       )}
 
-      <PixelButton
-        onClick={handleSubmit}
-        disabled={submitting}
-        style={{ width: "100%" }}
-      >
+      <PixelButton onClick={handleSubmit} disabled={submitting} style={{ width: "100%" }}>
         {submitting ? "BUILDING..." : "BUILD"}
       </PixelButton>
     </div>

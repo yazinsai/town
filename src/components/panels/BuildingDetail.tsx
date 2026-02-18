@@ -1,7 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { Building, Agent, WSEvent } from "@shared/types";
 import { getBuilding, spawnAgent, killAgent, deleteBuilding, respondToAgent } from "../../lib/api";
 import { useAgent } from "../../hooks/useAgent";
+import { useImageAttachments } from "../../hooks/useImageAttachments";
+import { ImageThumbnails, AttachButton, HiddenFileInput } from "../ui/ImageAttachments";
 import ConversationLog from "./ConversationLog";
 import PixelButton from "../ui/PixelButton";
 import PixelInput from "../ui/PixelInput";
@@ -53,6 +55,7 @@ function AgentFloor({
   const [expanded, setExpanded] = useState(initialExpanded);
   const [msg, setMsg] = useState("");
   const [sending, setSending] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
   const { agent: liveAgent, conversation } = useAgent(
     expanded ? agent.id : null,
     lastEvent
@@ -62,12 +65,27 @@ function AgentFloor({
   const style = floorStyles[displayAgent.state] || defaultFloorStyle;
   const isFinished = displayAgent.state === "completed" || displayAgent.state === "error";
 
+  const {
+    images, fileInputRef,
+    removeImage, clearImages, openFilePicker, bindPaste,
+    handleFileInputChange,
+  } = useImageAttachments();
+
+  useEffect(() => {
+    return bindPaste(inputRef.current);
+  }, [bindPaste, expanded]);
+
   async function handleSendMessage() {
     if (!msg.trim() || sending) return;
     setSending(true);
     try {
-      await respondToAgent(agent.id, { type: "message", message: msg });
+      await respondToAgent(agent.id, {
+        type: "message",
+        message: msg,
+        images: images.length > 0 ? images : undefined,
+      });
       setMsg("");
+      clearImages();
     } catch (err) {
       console.error("Failed to send message:", err);
     } finally {
@@ -86,18 +104,13 @@ function AgentFloor({
         transition: "opacity 0.3s",
       }}
     >
-      {/* Left accent bar */}
       <div
         className={
           displayAgent.state === "waiting_input" || displayAgent.state === "waiting_permission"
             ? "animate-accent-pulse"
             : undefined
         }
-        style={{
-          width: "4px",
-          background: style.accent,
-          flexShrink: 0,
-        }}
+        style={{ width: "4px", background: style.accent, flexShrink: 0 }}
       />
 
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -105,14 +118,9 @@ function AgentFloor({
           onClick={() => {
             const next = !expanded;
             setExpanded(next);
-            if (next && displayAgent.state === "completed") {
-              onAgentSeen(agent.id);
-            }
+            if (next && displayAgent.state === "completed") onAgentSeen(agent.id);
           }}
-          style={{
-            padding: "8px",
-            cursor: "pointer",
-          }}
+          style={{ padding: "8px", cursor: "pointer" }}
         >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -124,23 +132,14 @@ function AgentFloor({
                 <div
                   className={displayAgent.state === "busy" ? "animate-bob" : undefined}
                   style={{
-                    width: "8px",
-                    height: "8px",
-                    background: stateInfo.color,
-                    flexShrink: 0,
-                    boxShadow: displayAgent.state === "busy"
-                      ? `0 0 6px ${stateInfo.color}`
-                      : "none",
+                    width: "8px", height: "8px", background: stateInfo.color, flexShrink: 0,
+                    boxShadow: displayAgent.state === "busy" ? `0 0 6px ${stateInfo.color}` : "none",
                   }}
                 />
               )}
-              <PixelText variant="small" color={stateInfo.color}>
-                {stateInfo.label}
-              </PixelText>
+              <PixelText variant="small" color={stateInfo.color}>{stateInfo.label}</PixelText>
             </div>
-            <PixelText variant="small" color="#5C3317">
-              {expanded ? "v" : ">"}
-            </PixelText>
+            <PixelText variant="small" color="#5C3317">{expanded ? "v" : ">"}</PixelText>
           </div>
           <PixelText
             variant="small"
@@ -148,12 +147,7 @@ function AgentFloor({
             style={{
               lineHeight: "12px",
               ...(isFinished && { textDecoration: "line-through", textDecorationColor: style.accent }),
-              ...(!expanded && {
-                display: "-webkit-box",
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: "vertical" as const,
-                overflow: "hidden",
-              }),
+              ...(!expanded && { display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as const, overflow: "hidden" }),
             }}
           >
             {displayAgent.currentTask || displayAgent.initialPrompt}
@@ -165,49 +159,38 @@ function AgentFloor({
             <ConversationLog entries={conversation} />
 
             {/* Message input */}
-            <div
-              style={{
-                padding: "8px",
-                display: "flex",
-                gap: "6px",
-                borderTop: `1px solid ${style.border}`,
-              }}
-            >
-              <PixelInput
-                value={msg}
-                onChange={(e) => setMsg(e.target.value)}
-                placeholder="Send feedback..."
-                onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-                style={{ flex: 1 }}
-              />
-              <PixelButton onClick={handleSendMessage} disabled={sending}>
-                {sending ? "..." : "SEND"}
-              </PixelButton>
+            <div style={{ padding: "8px", borderTop: `1px solid ${style.border}` }}>
+              {images.length > 0 && (
+                <ImageThumbnails images={images} onRemove={removeImage} />
+              )}
+              <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                <div style={{ flex: 1, position: "relative" }}>
+                  <PixelInput
+                    ref={inputRef}
+                    value={msg}
+                    onChange={(e) => setMsg(e.target.value)}
+                    placeholder="Send feedback..."
+                    onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+                    style={{ paddingRight: "28px" }}
+                  />
+                  <div style={{ position: "absolute", right: "2px", top: "50%", transform: "translateY(-50%)" }}>
+                    <AttachButton onClick={openFilePicker} hasImages={images.length > 0} />
+                  </div>
+                </div>
+                <PixelButton onClick={handleSendMessage} disabled={sending}>
+                  {sending ? "..." : "SEND"}
+                </PixelButton>
+              </div>
+              <HiddenFileInput inputRef={fileInputRef} onChange={handleFileInputChange} />
             </div>
 
             {/* Actions */}
-            <div
-              style={{
-                padding: "0 8px 8px",
-                display: "flex",
-                gap: "6px",
-              }}
-            >
-              {(displayAgent.state === "waiting_input" ||
-                displayAgent.state === "waiting_permission") && (
-                <PixelButton onClick={() => onBubbleClick(displayAgent)}>
-                  RESPOND
-                </PixelButton>
+            <div style={{ padding: "0 8px 8px", display: "flex", gap: "6px" }}>
+              {(displayAgent.state === "waiting_input" || displayAgent.state === "waiting_permission") && (
+                <PixelButton onClick={() => onBubbleClick(displayAgent)}>RESPOND</PixelButton>
               )}
               {!isFinished && (
-                <PixelButton
-                  variant="danger"
-                  onClick={async () => {
-                    await killAgent(agent.id);
-                  }}
-                >
-                  KILL
-                </PixelButton>
+                <PixelButton variant="danger" onClick={async () => { await killAgent(agent.id); }}>KILL</PixelButton>
               )}
             </div>
           </div>
@@ -230,6 +213,18 @@ export default function BuildingDetail({
   const [newPrompt, setNewPrompt] = useState("");
   const [spawning, setSpawning] = useState(false);
   const [loading, setLoading] = useState(true);
+  const spawnInputRef = useRef<HTMLInputElement>(null);
+
+  const {
+    images: spawnImages, fileInputRef: spawnFileRef,
+    removeImage: spawnRemoveImage, clearImages: spawnClearImages,
+    openFilePicker: spawnOpenPicker, bindPaste: spawnBindPaste,
+    handleFileInputChange: spawnHandleFileChange,
+  } = useImageAttachments();
+
+  useEffect(() => {
+    return spawnBindPaste(spawnInputRef.current);
+  }, [spawnBindPaste]);
 
   async function fetchDetail() {
     try {
@@ -242,18 +237,11 @@ export default function BuildingDetail({
     }
   }
 
-  useEffect(() => {
-    fetchDetail();
-  }, [building.id]);
+  useEffect(() => { fetchDetail(); }, [building.id]);
 
-  // Re-fetch on relevant events
   useEffect(() => {
     if (!lastEvent) return;
-    if (
-      lastEvent.type === "agent:state" ||
-      lastEvent.type === "agent:completed" ||
-      lastEvent.type === "agent:error"
-    ) {
+    if (lastEvent.type === "agent:state" || lastEvent.type === "agent:completed" || lastEvent.type === "agent:error") {
       fetchDetail();
     }
   }, [lastEvent]);
@@ -262,8 +250,12 @@ export default function BuildingDetail({
     if (!newPrompt.trim()) return;
     setSpawning(true);
     try {
-      await spawnAgent(building.id, { initialPrompt: newPrompt });
+      await spawnAgent(building.id, {
+        initialPrompt: newPrompt,
+        images: spawnImages.length > 0 ? spawnImages : undefined,
+      });
       setNewPrompt("");
+      spawnClearImages();
       fetchDetail();
     } catch (err) {
       console.error("Failed to spawn agent:", err);
@@ -285,31 +277,14 @@ export default function BuildingDetail({
     <div
       className="animate-slide-up"
       style={{
-        position: "fixed",
-        bottom: 0,
-        left: 0,
-        right: 0,
-        background: "#2C1810",
-        border: "3px solid #8B4513",
-        borderBottom: "none",
-        padding: "16px",
-        zIndex: 100,
-        maxHeight: "85vh",
-        overflowY: "auto",
+        position: "fixed", bottom: 0, left: 0, right: 0,
+        background: "#2C1810", border: "3px solid #8B4513", borderBottom: "none",
+        padding: "16px", zIndex: 100, maxHeight: "85vh", overflowY: "auto",
       }}
     >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "8px",
-        }}
-      >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
         <PixelText variant="h2">{building.name.toUpperCase()}</PixelText>
-        <PixelButton variant="ghost" onClick={onClose}>
-          X
-        </PixelButton>
+        <PixelButton variant="ghost" onClick={onClose}>X</PixelButton>
       </div>
 
       <PixelText variant="small" color="#A0826A" style={{ marginBottom: "16px" }}>
@@ -323,13 +298,9 @@ export default function BuildingDetail({
         </PixelText>
 
         {loading ? (
-          <PixelText variant="small" color="#5C3317">
-            Loading...
-          </PixelText>
+          <PixelText variant="small" color="#5C3317">Loading...</PixelText>
         ) : agents.length === 0 ? (
-          <PixelText variant="small" color="#5C3317">
-            No agents yet
-          </PixelText>
+          <PixelText variant="small" color="#5C3317">No agents yet</PixelText>
         ) : (
           agents.map((agent) => (
             <AgentFloor
@@ -345,30 +316,32 @@ export default function BuildingDetail({
       </div>
 
       {/* Add new floor */}
-      <div
-        style={{
-          display: "flex",
-          gap: "6px",
-          marginBottom: "12px",
-          alignItems: "center",
-        }}
-      >
-        <PixelInput
-          value={newPrompt}
-          onChange={(e) => setNewPrompt(e.target.value)}
-          placeholder="New agent task..."
-          onKeyDown={(e) => e.key === "Enter" && handleSpawn()}
-          style={{ flex: 1 }}
-        />
-        <PixelButton onClick={handleSpawn} disabled={spawning}>
-          {spawning ? "..." : "+ FLOOR"}
-        </PixelButton>
+      <div style={{ marginBottom: "12px" }}>
+        {spawnImages.length > 0 && (
+          <ImageThumbnails images={spawnImages} onRemove={spawnRemoveImage} />
+        )}
+        <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+          <div style={{ flex: 1, position: "relative" }}>
+            <PixelInput
+              ref={spawnInputRef}
+              value={newPrompt}
+              onChange={(e) => setNewPrompt(e.target.value)}
+              placeholder="New agent task..."
+              onKeyDown={(e) => e.key === "Enter" && handleSpawn()}
+              style={{ paddingRight: "28px" }}
+            />
+            <div style={{ position: "absolute", right: "2px", top: "50%", transform: "translateY(-50%)" }}>
+              <AttachButton onClick={spawnOpenPicker} hasImages={spawnImages.length > 0} />
+            </div>
+          </div>
+          <PixelButton onClick={handleSpawn} disabled={spawning}>
+            {spawning ? "..." : "+ FLOOR"}
+          </PixelButton>
+        </div>
+        <HiddenFileInput inputRef={spawnFileRef} onChange={spawnHandleFileChange} />
       </div>
 
-      {/* Delete building */}
-      <PixelButton variant="danger" onClick={handleDelete}>
-        DEMOLISH
-      </PixelButton>
+      <PixelButton variant="danger" onClick={handleDelete}>DEMOLISH</PixelButton>
     </div>
   );
 }
