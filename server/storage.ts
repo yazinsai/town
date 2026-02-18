@@ -186,7 +186,7 @@ export function getAgentsByBuilding(buildingId: string): Agent[] {
 }
 
 export async function createAgent(
-  data: Omit<Agent, "id" | "createdAt" | "completedAt" | "error" | "sdkSessionId" | "pendingQuestion" | "pendingPermission">
+  data: Omit<Agent, "id" | "createdAt" | "completedAt" | "error" | "sdkSessionId" | "pendingQuestion" | "pendingPermission" | "worktreePath" | "branchName" | "mergeStatus" | "mergeCommitSha">
 ): Promise<Agent> {
   const agent: Agent = {
     id: uuidv4(),
@@ -196,6 +196,10 @@ export async function createAgent(
     sdkSessionId: null,
     pendingQuestion: null,
     pendingPermission: null,
+    worktreePath: null,
+    branchName: null,
+    mergeStatus: null,
+    mergeCommitSha: null,
     ...data,
   };
   agents.set(agent.id, agent);

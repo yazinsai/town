@@ -39,6 +39,11 @@ export interface Agent {
   // For waiting states
   pendingQuestion: PendingQuestion | null;
   pendingPermission: PendingPermission | null;
+  // Worktree isolation
+  worktreePath: string | null;
+  branchName: string | null;
+  mergeStatus: "pending" | "merged" | "discarded" | "reverted" | null;
+  mergeCommitSha: string | null;
 }
 
 export interface TrashedBuilding {
@@ -111,6 +116,10 @@ export type WSEvent =
   | { type: "agent:permission"; agentId: string; permission: PendingPermission }
   | { type: "agent:completed"; agentId: string }
   | { type: "agent:error"; agentId: string; error: string }
+  | { type: "agent:merged"; agentId: string }
+  | { type: "agent:merge-failed"; agentId: string; error: string }
+  | { type: "agent:discarded"; agentId: string }
+  | { type: "agent:reverted"; agentId: string }
   | { type: "building:created"; building: Building }
   | { type: "building:removed"; buildingId: string }
   | { type: "building:restored"; building: Building };
