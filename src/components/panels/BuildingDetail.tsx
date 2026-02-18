@@ -150,7 +150,7 @@ function AgentFloor({
               display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as const, overflow: "hidden",
             }}
           >
-            {displayAgent.currentTask || displayAgent.initialPrompt}
+            {displayAgent.initialPrompt}
           </PixelText>
         </div>
 
@@ -165,6 +165,8 @@ function AgentFloor({
                 },
                 ...conversation,
               ]}
+              agentId={agent.id}
+              isWaitingInput={displayAgent.state === "waiting_input"}
             />
 
             {/* Message input */}
@@ -221,6 +223,7 @@ export default function BuildingDetail({
   const [agents, setAgents] = useState<Agent[]>([]);
   const [newPrompt, setNewPrompt] = useState("");
   const [spawning, setSpawning] = useState(false);
+  const [showSpawnInput, setShowSpawnInput] = useState(false);
   const [loading, setLoading] = useState(true);
   const spawnInputRef = useRef<HTMLInputElement>(null);
 
@@ -265,6 +268,7 @@ export default function BuildingDetail({
       });
       setNewPrompt("");
       spawnClearImages();
+      setShowSpawnInput(false);
       fetchDetail();
     } catch (err) {
       console.error("Failed to spawn agent:", err);
@@ -274,6 +278,7 @@ export default function BuildingDetail({
   }
 
   async function handleDelete() {
+    if (!window.confirm(`Demolish "${building.name}"? This will kill all agents and delete the building.`)) return;
     try {
       await deleteBuilding(building.id);
       onDeleted();
@@ -325,32 +330,47 @@ export default function BuildingDetail({
       </div>
 
       {/* Add new floor */}
-      <div style={{ marginBottom: "12px" }}>
-        {spawnImages.length > 0 && (
-          <ImageThumbnails images={spawnImages} onRemove={spawnRemoveImage} />
-        )}
-        <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-          <div style={{ flex: 1, position: "relative" }}>
-            <PixelInput
-              ref={spawnInputRef}
-              value={newPrompt}
-              onChange={(e) => setNewPrompt(e.target.value)}
-              placeholder="New agent task..."
-              onKeyDown={(e) => e.key === "Enter" && handleSpawn()}
-              style={{ paddingRight: "28px" }}
-            />
-            <div style={{ position: "absolute", right: "2px", top: "50%", transform: "translateY(-50%)" }}>
-              <AttachButton onClick={spawnOpenPicker} hasImages={spawnImages.length > 0} />
+      {showSpawnInput && (
+        <div style={{ marginBottom: "12px" }}>
+          {spawnImages.length > 0 && (
+            <ImageThumbnails images={spawnImages} onRemove={spawnRemoveImage} />
+          )}
+          <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+            <div style={{ flex: 1, position: "relative" }}>
+              <PixelInput
+                ref={spawnInputRef}
+                value={newPrompt}
+                onChange={(e) => setNewPrompt(e.target.value)}
+                placeholder="New agent task..."
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSpawn();
+                  if (e.key === "Escape") { setShowSpawnInput(false); setNewPrompt(""); spawnClearImages(); }
+                }}
+                style={{ paddingRight: "28px" }}
+              />
+              <div style={{ position: "absolute", right: "2px", top: "50%", transform: "translateY(-50%)" }}>
+                <AttachButton onClick={spawnOpenPicker} hasImages={spawnImages.length > 0} />
+              </div>
             </div>
+            <PixelButton onClick={handleSpawn} disabled={spawning}>
+              {spawning ? "..." : "+ FLOOR"}
+            </PixelButton>
+            <PixelButton variant="ghost" onClick={() => { setShowSpawnInput(false); setNewPrompt(""); spawnClearImages(); }}>
+              X
+            </PixelButton>
           </div>
-          <PixelButton onClick={handleSpawn} disabled={spawning}>
-            {spawning ? "..." : "+ FLOOR"}
-          </PixelButton>
+          <HiddenFileInput inputRef={spawnFileRef} onChange={spawnHandleFileChange} />
         </div>
-        <HiddenFileInput inputRef={spawnFileRef} onChange={spawnHandleFileChange} />
-      </div>
+      )}
 
-      <PixelButton variant="danger" onClick={handleDelete}>DEMOLISH</PixelButton>
+      <div style={{ display: "flex", gap: "6px" }}>
+        {!showSpawnInput && (
+          <PixelButton onClick={() => { setShowSpawnInput(true); setTimeout(() => spawnInputRef.current?.focus(), 0); }}>
+            + FLOOR
+          </PixelButton>
+        )}
+        <PixelButton variant="danger" onClick={handleDelete}>DEMOLISH</PixelButton>
+      </div>
     </div>
   );
 }

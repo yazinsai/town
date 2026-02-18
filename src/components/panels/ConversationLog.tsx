@@ -1,10 +1,13 @@
 import { useRef, useEffect, useState } from "react";
 import type { ConversationEntry } from "@shared/types";
 import ReactMarkdown from "react-markdown";
+import { respondToAgent } from "../../lib/api";
 import PixelText from "../ui/PixelText";
 
 interface ConversationLogProps {
   entries: ConversationEntry[];
+  agentId?: string;
+  isWaitingInput?: boolean;
 }
 
 function formatTime(ts: string) {
@@ -64,9 +67,106 @@ function formatInput(input: unknown): string {
     .join("\n");
 }
 
-function Entry({ entry }: { entry: ConversationEntry }) {
+function InlineQuestion({
+  entry,
+  agentId,
+  isWaitingInput,
+}: {
+  entry: ConversationEntry;
+  agentId?: string;
+  isWaitingInput?: boolean;
+}) {
+  const input = entry.metadata?.input as Record<string, unknown> | undefined;
+  const questions = input?.questions as Array<{
+    question: string;
+    header: string;
+    options: Array<{ label: string; description: string }>;
+    multiSelect: boolean;
+  }> | undefined;
+
+  const [submitting, setSubmitting] = useState(false);
+  const [submittedAnswer, setSubmittedAnswer] = useState<string | null>(null);
+
+  if (!questions?.length) return null;
+
+  const canInteract = isWaitingInput && agentId && !submittedAnswer;
+
+  async function handleSelect(questionText: string, optLabel: string) {
+    if (!agentId || !canInteract) return;
+    setSubmitting(true);
+    try {
+      await respondToAgent(agentId, { type: "answer", answers: { [questionText]: optLabel } });
+      setSubmittedAnswer(optLabel);
+    } catch (err) {
+      console.error("Failed to answer:", err);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div style={{ marginBottom: "6px" }}>
+      {questions.map((q, qi) => (
+        <div key={qi} style={{ marginBottom: "8px" }}>
+          {q.header && (
+            <PixelText variant="small" color="#E8C55A" style={{ marginBottom: "3px" }}>
+              {q.header}
+            </PixelText>
+          )}
+          <PixelText variant="small" color="#D2B48C" style={{ marginBottom: "6px", lineHeight: "10px" }}>
+            {q.question}
+          </PixelText>
+          <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
+            {q.options.map((opt, oi) => {
+              const isChosen = submittedAnswer === opt.label;
+              return (
+                <div
+                  key={oi}
+                  onClick={() => handleSelect(q.question, opt.label)}
+                  style={{
+                    padding: "5px 7px",
+                    background: isChosen ? "rgba(76,175,80,0.2)" : "rgba(139,69,19,0.12)",
+                    border: `2px solid ${isChosen ? "#4CAF50" : "#5C3317"}`,
+                    cursor: canInteract ? "pointer" : "default",
+                    opacity: submittedAnswer && !isChosen ? 0.4 : canInteract ? 1 : 0.6,
+                    transition: "border-color 0.15s, background 0.15s, opacity 0.15s",
+                  }}
+                >
+                  <PixelText variant="small" color="#F4E4C1">{opt.label}</PixelText>
+                  {opt.description && (
+                    <PixelText variant="small" color="#A0826A" style={{ marginTop: "2px", lineHeight: "9px" }}>
+                      {opt.description}
+                    </PixelText>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Entry({
+  entry,
+  agentId,
+  isWaitingInput,
+}: {
+  entry: ConversationEntry;
+  agentId?: string;
+  isWaitingInput?: boolean;
+}) {
   const [expanded, setExpanded] = useState(false);
   const isTool = entry.role === "tool_call" || entry.role === "tool_result";
+  const toolName = entry.metadata?.toolName as string | undefined;
+
+  // Render AskUserQuestion as an interactive inline card
+  if (isTool && toolName === "AskUserQuestion") {
+    return (
+      <InlineQuestion entry={entry} agentId={agentId} isWaitingInput={isWaitingInput} />
+    );
+  }
 
   if (isTool) {
     const summary = toolSummary(entry);
@@ -257,7 +357,7 @@ function Entry({ entry }: { entry: ConversationEntry }) {
   );
 }
 
-export default function ConversationLog({ entries }: ConversationLogProps) {
+export default function ConversationLog({ entries, agentId, isWaitingInput }: ConversationLogProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -274,6 +374,15 @@ export default function ConversationLog({ entries }: ConversationLogProps) {
     );
   }
 
+  // Only the last AskUserQuestion should be interactive
+  let lastAskIdx = -1;
+  for (let i = entries.length - 1; i >= 0; i--) {
+    if (entries[i].role === "tool_call" && entries[i].metadata?.toolName === "AskUserQuestion") {
+      lastAskIdx = i;
+      break;
+    }
+  }
+
   return (
     <div
       style={{
@@ -286,7 +395,12 @@ export default function ConversationLog({ entries }: ConversationLogProps) {
       }}
     >
       {entries.map((entry, i) => (
-        <Entry key={i} entry={entry} />
+        <Entry
+          key={i}
+          entry={entry}
+          agentId={agentId}
+          isWaitingInput={isWaitingInput && i === lastAskIdx}
+        />
       ))}
       <div ref={bottomRef} />
     </div>
