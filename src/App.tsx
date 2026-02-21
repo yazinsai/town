@@ -173,9 +173,16 @@ export default function App() {
   // Auto-mark already-terminal agents as seen on first load
   const initialLoadDone = useRef(false);
 
-  // Fetch agent details for all buildings
+  // Fetch agent details for all buildings (initial load only, then on new buildings)
+  const prevBuildingIds = useRef<string>("");
+
   useEffect(() => {
     if (!authed || buildings.length === 0) return;
+
+    // Only refetch if the set of building IDs actually changed
+    const currentIds = buildings.map((b) => b.id).sort().join(",");
+    if (currentIds === prevBuildingIds.current) return;
+    prevBuildingIds.current = currentIds;
 
     async function fetchAgents() {
       const results: Record<string, Agent[]> = {};
@@ -213,7 +220,7 @@ export default function App() {
     fetchAgents();
   }, [authed, buildings]);
 
-  // Update agent details on WS events
+  // Update agent details on WS events — targeted per-building
   useEffect(() => {
     if (!lastEvent) return;
     if (
@@ -227,24 +234,52 @@ export default function App() {
       lastEvent.type === "agent:discarded" ||
       lastEvent.type === "agent:reverted"
     ) {
-      // Re-fetch all agents (simple approach)
-      const fetchAll = async () => {
-        const results: Record<string, Agent[]> = {};
-        await Promise.all(
-          buildings.map(async (b) => {
-            try {
-              const detail = await getBuilding(b.id);
-              results[b.id] = detail.agentDetails || [];
-            } catch {
-              results[b.id] = [];
-            }
+      const eventAgentId = lastEvent.agentId;
+
+      // Find which building this agent belongs to
+      let targetBuildingId: string | null = null;
+      for (const [bid, agents] of Object.entries(agentsByBuilding)) {
+        if (agents.some((a) => a.id === eventAgentId)) {
+          targetBuildingId = bid;
+          break;
+        }
+      }
+
+      if (targetBuildingId) {
+        // Targeted: only refetch this building's agents
+        const bid = targetBuildingId;
+        getBuilding(bid)
+          .then((detail) => {
+            setAgentsByBuilding((prev) => ({
+              ...prev,
+              [bid]: detail.agentDetails || [],
+            }));
           })
-        );
-        setAgentsByBuilding(results);
-      };
-      fetchAll();
+          .catch(() => {
+            // ignore — building may have been removed
+          });
+      } else {
+        // Agent not found in any building — likely a newly spawned agent.
+        // Refetch all buildings' agents to pick it up.
+        const fetchAll = async () => {
+          const results: Record<string, Agent[]> = {};
+          await Promise.all(
+            buildings.map(async (b) => {
+              try {
+                const detail = await getBuilding(b.id);
+                results[b.id] = detail.agentDetails || [];
+              } catch {
+                results[b.id] = [];
+              }
+            })
+          );
+          setAgentsByBuilding(results);
+        };
+        fetchAll();
+      }
     }
-  }, [lastEvent, buildings]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastEvent]);
 
   if (checking) {
     return (
