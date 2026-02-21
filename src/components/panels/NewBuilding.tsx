@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import type { AgentState, BuildingStyle } from "@shared/types";
-import { createBuilding, getProjects, type ProjectInfo } from "../../lib/api";
+import { BUILDING_TIERS } from "@shared/types";
+import { createBuilding, getProjects, getStats, type ProjectInfo } from "../../lib/api";
 import { useImageAttachments } from "../../hooks/useImageAttachments";
 import { ImageThumbnails, AttachButton, HiddenFileInput } from "../ui/ImageAttachments";
 import PixelButton from "../ui/PixelButton";
@@ -15,6 +16,10 @@ import Masjid from "../sprites/Masjid";
 import Blacksmith from "../sprites/Blacksmith";
 import PostOffice from "../sprites/PostOffice";
 import MineShaft from "../sprites/MineShaft";
+import RailwayStation from "../sprites/RailwayStation";
+import ClockTower from "../sprites/ClockTower";
+import Pagoda from "../sprites/Pagoda";
+import Observatory from "../sprites/Observatory";
 
 interface NewBuildingProps {
   onClose: () => void;
@@ -34,6 +39,10 @@ const styles: { value: BuildingStyle; label: string; Sprite: React.FC<SpriteProp
   { value: "blacksmith", label: "Smith", Sprite: Blacksmith },
   { value: "post-office", label: "Post", Sprite: PostOffice },
   { value: "mine-shaft", label: "Mine", Sprite: MineShaft },
+  { value: "railway-station", label: "Rail", Sprite: RailwayStation },
+  { value: "clock-tower", label: "Clock", Sprite: ClockTower },
+  { value: "pagoda", label: "Pagoda", Sprite: Pagoda },
+  { value: "observatory", label: "Obs.", Sprite: Observatory },
 ];
 
 export default function NewBuilding({ onClose, onCreated }: NewBuildingProps) {
@@ -46,6 +55,7 @@ export default function NewBuilding({ onClose, onCreated }: NewBuildingProps) {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [totalSpawned, setTotalSpawned] = useState(0);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -60,6 +70,10 @@ export default function NewBuilding({ onClose, onCreated }: NewBuildingProps) {
   }, [bindPaste]);
 
   useEffect(() => {
+    getStats().then((s) => setTotalSpawned(s.totalAgentsSpawned)).catch(() => {});
+  }, []);
+
+  useEffect(() => {
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       getProjects(projectPath || undefined)
@@ -71,6 +85,16 @@ export default function NewBuilding({ onClose, onCreated }: NewBuildingProps) {
     }, 150);
     return () => clearTimeout(debounceRef.current);
   }, [projectPath]);
+
+  function isLocked(style: BuildingStyle): boolean {
+    const tier = BUILDING_TIERS.find((t) => t.style === style);
+    return tier ? totalSpawned < tier.threshold : false;
+  }
+
+  function agentsNeeded(style: BuildingStyle): number {
+    const tier = BUILDING_TIERS.find((t) => t.style === style);
+    return tier ? tier.threshold - totalSpawned : 0;
+  }
 
   async function handleSubmit() {
     if (!name || !projectPath || !initialPrompt) {
@@ -175,25 +199,37 @@ export default function NewBuilding({ onClose, onCreated }: NewBuildingProps) {
       <div style={{ marginBottom: "12px" }}>
         <PixelText variant="small" color="#D2B48C" style={{ marginBottom: "8px" }}>STYLE</PixelText>
         <div style={{ display: "flex", gap: "12px", overflowX: "auto", paddingBottom: "4px" }}>
-          {styles.map(({ value, label, Sprite }) => (
-            <div
-              key={value}
-              onClick={() => setBuildingStyle(value)}
-              style={{
-                cursor: "pointer", padding: "8px",
-                border: `2px solid ${buildingStyle === value ? "#E8C55A" : "#5C3317"}`,
-                background: buildingStyle === value ? "rgba(232,197,90,0.1)" : "transparent",
-                display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", flexShrink: 0,
-              }}
-            >
-              <div style={{ width: "60px", height: "50px", position: "relative", overflow: "visible" }}>
-                <div style={{ position: "absolute", bottom: 0, left: "50%", transform: "translateX(-50%) scale(0.5)", transformOrigin: "bottom center" }}>
-                  <Sprite agents={previewAgents} />
+          {styles.map(({ value, label, Sprite }) => {
+            const locked = isLocked(value);
+            return (
+              <div
+                key={value}
+                onClick={() => { if (!locked) setBuildingStyle(value); }}
+                style={{
+                  cursor: locked ? "not-allowed" : "pointer", padding: "8px",
+                  border: `2px solid ${locked ? "#3A2A1A" : buildingStyle === value ? "#E8C55A" : "#5C3317"}`,
+                  background: locked ? "rgba(0,0,0,0.3)" : buildingStyle === value ? "rgba(232,197,90,0.1)" : "transparent",
+                  display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", flexShrink: 0,
+                  opacity: locked ? 0.5 : 1,
+                  position: "relative",
+                }}
+              >
+                <div style={{ width: "60px", height: "50px", position: "relative", overflow: "visible" }}>
+                  <div style={{ position: "absolute", bottom: 0, left: "50%", transform: "translateX(-50%) scale(0.5)", transformOrigin: "bottom center", filter: locked ? "grayscale(1)" : "none" }}>
+                    <Sprite agents={previewAgents} />
+                  </div>
+                  {locked && (
+                    <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", fontSize: "16px" }}>
+                      🔒
+                    </div>
+                  )}
                 </div>
+                <PixelText variant="small" color={locked ? "#666" : buildingStyle === value ? "#E8C55A" : "#D2B48C"}>
+                  {locked ? `${agentsNeeded(value)} more` : label}
+                </PixelText>
               </div>
-              <PixelText variant="small" color={buildingStyle === value ? "#E8C55A" : "#D2B48C"}>{label}</PixelText>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
