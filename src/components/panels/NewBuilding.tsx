@@ -14,6 +14,7 @@ import Hotel from "../sprites/Hotel";
 import Masjid from "../sprites/Masjid";
 import Blacksmith from "../sprites/Blacksmith";
 import PostOffice from "../sprites/PostOffice";
+import MineShaft from "../sprites/MineShaft";
 
 interface NewBuildingProps {
   onClose: () => void;
@@ -32,6 +33,7 @@ const styles: { value: BuildingStyle; label: string; Sprite: React.FC<SpriteProp
   { value: "masjid", label: "Masjid", Sprite: Masjid },
   { value: "blacksmith", label: "Smith", Sprite: Blacksmith },
   { value: "post-office", label: "Post", Sprite: PostOffice },
+  { value: "mine-shaft", label: "Mine", Sprite: MineShaft },
 ];
 
 export default function NewBuilding({ onClose, onCreated }: NewBuildingProps) {

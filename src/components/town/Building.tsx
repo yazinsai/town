@@ -7,6 +7,7 @@ import Hotel from "../sprites/Hotel";
 import Masjid from "../sprites/Masjid";
 import Blacksmith from "../sprites/Blacksmith";
 import PostOffice from "../sprites/PostOffice";
+import MineShaft from "../sprites/MineShaft";
 import SpeechBubble from "./SpeechBubble";
 import type { BubbleType } from "./SpeechBubble";
 
@@ -36,6 +37,7 @@ const floorLayout: Record<string, { buildingTop: number; windowStart: number }> 
   masjid: { buildingTop: 0, windowStart: 24 },
   blacksmith: { buildingTop: 0, windowStart: 22 },
   "post-office": { buildingTop: 0, windowStart: 22 },
+  "mine-shaft": { buildingTop: 24, windowStart: 24 },
 };
 
 function getBubbleType(state: AgentState): BubbleType | null {
@@ -66,6 +68,8 @@ function BuildingSprite({ style, agents, name }: { style: string; agents: FloorA
       return <Blacksmith agents={agents} name={name} />;
     case "post-office":
       return <PostOffice agents={agents} name={name} />;
+    case "mine-shaft":
+      return <MineShaft agents={agents} name={name} />;
     default:
       return <Saloon agents={agents} name={name} />;
   }
