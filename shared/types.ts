@@ -6,7 +6,20 @@ export type BuildingStyle =
   | "hotel"
   | "masjid"
   | "blacksmith"
-  | "post-office";
+  | "post-office"
+  | "railway-station"
+  | "mine-shaft"
+  | "clock-tower"
+  | "pagoda"
+  | "observatory";
+
+export const BUILDING_TIERS: { style: BuildingStyle; threshold: number }[] = [
+  { style: "railway-station", threshold: 5 },
+  { style: "mine-shaft", threshold: 15 },
+  { style: "clock-tower", threshold: 30 },
+  { style: "pagoda", threshold: 50 },
+  { style: "observatory", threshold: 100 },
+];
 
 export type AgentState =
   | "busy"

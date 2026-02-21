@@ -4,7 +4,7 @@ import { createBunWebSocket } from "hono/bun";
 import { cors } from "hono/cors";
 import { authMiddleware } from "./auth";
 import { addClient, removeClient } from "./websocket";
-import { initStorage, purgeExpiredTrash } from "./storage";
+import { initStorage, purgeExpiredTrash, getTotalAgentsSpawned } from "./storage";
 import buildingRoutes from "./routes/buildings";
 import agentRoutes from "./routes/agents";
 import projectRoutes from "./routes/projects";
@@ -67,6 +67,9 @@ app.route("/api/trash", trashRoutes);
 
 // Health check
 app.get("/api/health", (c) => c.json({ status: "ok" }));
+
+// Stats
+app.get("/api/stats", (c) => c.json({ totalAgentsSpawned: getTotalAgentsSpawned() }));
 
 // Serve SPA static files in production
 if (process.env.NODE_ENV === "production") {

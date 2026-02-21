@@ -155,3 +155,7 @@ export async function discardAgent(id: string): Promise<void> {
 export async function revertAgent(id: string): Promise<void> {
   return apiFetch<void>(`/agents/${id}/revert`, { method: "POST" });
 }
+
+export async function getStats(): Promise<{ totalAgentsSpawned: number }> {
+  return apiFetch<{ totalAgentsSpawned: number }>("/stats");
+}

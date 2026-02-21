@@ -185,6 +185,14 @@ export function getAgentsByBuilding(buildingId: string): Agent[] {
   return Array.from(agents.values()).filter((a) => a.buildingId === buildingId);
 }
 
+export function getTotalAgentsSpawned(): number {
+  let total = agents.size;
+  for (const entry of trash.values()) {
+    total += entry.agents.length;
+  }
+  return total;
+}
+
 export async function createAgent(
   data: Omit<Agent, "id" | "createdAt" | "completedAt" | "error" | "sdkSessionId" | "pendingQuestion" | "pendingPermission" | "worktreePath" | "branchName" | "mergeStatus" | "mergeCommitSha">
 ): Promise<Agent> {
