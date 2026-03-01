@@ -1,38 +1,38 @@
 import type { Context, Next } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
+import { getDeviceToken, createDeviceToken, touchDeviceToken } from "./storage";
 
 const TOWN_PASSWORD = process.env.TOWN_PASSWORD || "claude2024";
 const COOKIE_NAME = "town_auth";
-const COOKIE_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
-
-function isAuthenticated(c: Context): boolean {
-  // Check URL param
-  const urlPassword = c.req.query("p");
-  if (urlPassword === TOWN_PASSWORD) return true;
-
-  // Check cookie
-  const cookie = getCookie(c, COOKIE_NAME);
-  return cookie === TOWN_PASSWORD;
-}
+const COOKIE_MAX_AGE = 60 * 60 * 24 * 365; // 1 year
 
 export async function authMiddleware(c: Context, next: Next) {
-  // Check URL param and set cookie if valid
+  // Check URL param — first-time login via QR code
   const urlPassword = c.req.query("p");
   if (urlPassword === TOWN_PASSWORD) {
-    setCookie(c, COOKIE_NAME, TOWN_PASSWORD, {
+    const device = await createDeviceToken();
+    setCookie(c, COOKIE_NAME, device.token, {
       maxAge: COOKIE_MAX_AGE,
       httpOnly: true,
       path: "/",
       sameSite: "Lax",
     });
-  }
-
-  if (isAuthenticated(c)) {
     await next();
     return;
   }
 
-  // Check if it's an API request
+  // Check cookie — returning device
+  const cookie = getCookie(c, COOKIE_NAME);
+  if (cookie) {
+    const device = getDeviceToken(cookie);
+    if (device) {
+      touchDeviceToken(cookie);
+      await next();
+      return;
+    }
+  }
+
+  // Not authenticated
   const accept = c.req.header("accept") || "";
   const isApi =
     c.req.path.startsWith("/api/") ||
@@ -42,7 +42,6 @@ export async function authMiddleware(c: Context, next: Next) {
     return c.json({ error: "Unauthorized" }, 401);
   }
 
-  // Return login page for browser requests
   return c.html(loginPage(), 401);
 }
 
