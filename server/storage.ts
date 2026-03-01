@@ -8,6 +8,16 @@ const TRASH_DIR = `${DATA_DIR}/trash`;
 const TRASH_MANIFEST = `${TRASH_DIR}/manifest.json`;
 const TRASH_AGENTS_DIR = `${TRASH_DIR}/agents`;
 
+// Device tokens
+export interface DeviceToken {
+  token: string;
+  createdAt: string;
+  lastSeen: string;
+}
+
+const DEVICES_FILE = `${DATA_DIR}/devices.json`;
+let devices: Map<string, DeviceToken> = new Map();
+
 // In-memory cache
 let buildings: Map<string, Building> = new Map();
 let agents: Map<string, Agent> = new Map();
@@ -93,7 +103,18 @@ export async function initStorage() {
     }
   }
 
-  console.log(`Loaded ${buildings.size} buildings, ${agents.size} agents, ${trash.size} trashed`);
+  // Load devices
+  const devicesFile = Bun.file(DEVICES_FILE);
+  if (await devicesFile.exists()) {
+    try {
+      const data: DeviceToken[] = await devicesFile.json();
+      devices = new Map(data.map((d) => [d.token, d]));
+    } catch {
+      devices = new Map();
+    }
+  }
+
+  console.log(`Loaded ${buildings.size} buildings, ${agents.size} agents, ${trash.size} trashed, ${devices.size} devices`);
 }
 
 // Building CRUD
@@ -309,6 +330,36 @@ export async function purgeExpiredTrash(): Promise<number> {
     }
   }
   return purged;
+}
+
+// Device token CRUD
+
+export function getDeviceToken(token: string): DeviceToken | undefined {
+  return devices.get(token);
+}
+
+export async function createDeviceToken(): Promise<DeviceToken> {
+  const device: DeviceToken = {
+    token: uuidv4(),
+    createdAt: new Date().toISOString(),
+    lastSeen: new Date().toISOString(),
+  };
+  devices.set(device.token, device);
+  await saveDevices();
+  return device;
+}
+
+export async function touchDeviceToken(token: string): Promise<void> {
+  const device = devices.get(token);
+  if (device) {
+    device.lastSeen = new Date().toISOString();
+    await saveDevices();
+  }
+}
+
+async function saveDevices() {
+  const data = JSON.stringify(Array.from(devices.values()), null, 2);
+  await Bun.write(DEVICES_FILE, data);
 }
 
 // Conversation log
