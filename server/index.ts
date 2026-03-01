@@ -29,8 +29,10 @@ app.post("/api/auth/login", async (c) => {
   const TOWN_PASSWORD = process.env.TOWN_PASSWORD || "claude2024";
   if (password === TOWN_PASSWORD) {
     const { setCookie } = await import("hono/cookie");
-    setCookie(c, "town_auth", TOWN_PASSWORD, {
-      maxAge: 60 * 60 * 24 * 7,
+    const { createDeviceToken } = await import("./storage");
+    const device = await createDeviceToken();
+    setCookie(c, "town_auth", device.token, {
+      maxAge: 60 * 60 * 24 * 365,
       httpOnly: true,
       path: "/",
       sameSite: "Lax",
