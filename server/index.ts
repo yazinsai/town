@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { serveStatic } from "hono/bun";
 import { createBunWebSocket } from "hono/bun";
 import { cors } from "hono/cors";
+import { join } from "path";
 import { authMiddleware } from "./auth";
 import { addClient, removeClient } from "./websocket";
 import { initStorage, purgeExpiredTrash, getTotalAgentsSpawned } from "./storage";
@@ -76,8 +77,10 @@ app.get("/api/stats", (c) => c.json({ totalAgentsSpawned: getTotalAgentsSpawned(
 
 // Serve SPA static files in production
 if (process.env.NODE_ENV === "production") {
-  app.use("/*", serveStatic({ root: "./dist" }));
-  app.get("*", serveStatic({ path: "./dist/index.html" }));
+  const pkgRoot = new URL("..", import.meta.url).pathname;
+  const distPath = join(pkgRoot, "dist");
+  app.use("/*", serveStatic({ root: distPath }));
+  app.get("*", serveStatic({ path: join(distPath, "index.html") }));
 }
 
 // Initialize storage on startup
