@@ -1,12 +1,20 @@
 import { v4 as uuidv4 } from "uuid";
+import { homedir } from "os";
+import { join } from "path";
 import type { Building, Agent, ConversationEntry, TrashedBuilding } from "../shared/types";
 
-const DATA_DIR = "./data";
-const BUILDINGS_FILE = `${DATA_DIR}/buildings.json`;
-const AGENTS_DIR = `${DATA_DIR}/agents`;
-const TRASH_DIR = `${DATA_DIR}/trash`;
-const TRASH_MANIFEST = `${TRASH_DIR}/manifest.json`;
-const TRASH_AGENTS_DIR = `${TRASH_DIR}/agents`;
+function resolveDataDir(): string {
+  if (process.env.CLAUDE_TOWN_DATA_DIR) return process.env.CLAUDE_TOWN_DATA_DIR;
+  if (process.env.NODE_ENV !== "production") return "./data";
+  return join(homedir(), ".claude-town");
+}
+
+const DATA_DIR = resolveDataDir();
+const BUILDINGS_FILE = join(DATA_DIR, "buildings.json");
+const AGENTS_DIR = join(DATA_DIR, "agents");
+const TRASH_DIR = join(DATA_DIR, "trash");
+const TRASH_MANIFEST = join(TRASH_DIR, "manifest.json");
+const TRASH_AGENTS_DIR = join(TRASH_DIR, "agents");
 
 // Device tokens
 export interface DeviceToken {
@@ -15,7 +23,7 @@ export interface DeviceToken {
   lastSeen: string;
 }
 
-const DEVICES_FILE = `${DATA_DIR}/devices.json`;
+const DEVICES_FILE = join(DATA_DIR, "devices.json");
 let devices: Map<string, DeviceToken> = new Map();
 
 // In-memory cache
