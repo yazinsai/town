@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { execSync, spawn } from "child_process";
+import { randomBytes } from "crypto";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 
@@ -49,13 +50,18 @@ try {
   process.exit(1);
 }
 
+// Auto-generate password if not provided
+if (!password) {
+  password = randomBytes(4).toString("hex");
+}
+
 // Build env
 const env = {
   ...process.env,
   NODE_ENV: "production",
   PORT: port,
+  TOWN_PASSWORD: password,
 };
-if (password) env.TOWN_PASSWORD = password;
 if (dataDir) env.CLAUDE_TOWN_DATA_DIR = dataDir;
 
 // Spawn bun server
