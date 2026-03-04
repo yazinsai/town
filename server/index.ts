@@ -5,6 +5,7 @@ import { cors } from "hono/cors";
 import { authMiddleware } from "./auth";
 import { addClient, removeClient } from "./websocket";
 import { initStorage, purgeExpiredTrash, getTotalAgentsSpawned } from "./storage";
+import { printBanner } from "./banner";
 import buildingRoutes from "./routes/buildings";
 import agentRoutes from "./routes/agents";
 import projectRoutes from "./routes/projects";
@@ -100,7 +101,7 @@ const server = Bun.serve({
   websocket,
 });
 
-console.log(`Claude Town server running on http://localhost:${server.port}`);
+await printBanner(server.port, process.cwd());
 
 // Clean shutdown
 function shutdown() {
