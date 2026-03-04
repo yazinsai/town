@@ -4,3 +4,4 @@ public/assets/
 data/
 .env
 *.log
+.worktrees/
