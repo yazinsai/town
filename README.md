@@ -10,6 +10,7 @@
 </p>
 
 <p align="center">
+  <img src="https://img.shields.io/npm/v/claude-town?style=flat-square&color=cb3837" />
   <img src="https://img.shields.io/badge/runtime-bun-f472b6?style=flat-square" />
   <img src="https://img.shields.io/badge/frontend-react_19-61dafb?style=flat-square" />
   <img src="https://img.shields.io/badge/agents-claude_sdk-d97706?style=flat-square" />
@@ -28,6 +29,24 @@ Each **building** is a project. Each **floor** is an agent. When an agent needs 
   <img src="docs/images/saloon-building.png" alt="A pixel art saloon with glowing windows and a tiny cowboy" width="280" />
 </p>
 
+## Quick start
+
+```bash
+npx claude-town
+```
+
+That's it. Your town opens in the browser, ready for business.
+
+It scans the current directory for projects, so run it from wherever your repos live. A password is auto-generated and printed to the console on first run.
+
+> **Note:** Claude Town uses your existing [Claude Code](https://docs.anthropic.com/en/docs/claude-code) subscription to run agents. No separate API key needed.
+
+## Requirements
+
+- [Bun](https://bun.sh) — `curl -fsSL https://bun.sh/install | bash`
+- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) subscription (Max or Team plan)
+- Git
+
 ## Reading the town
 
 <img align="right" src="docs/images/agent-states.png" alt="Window states: busy, done, waiting" width="220" />
@@ -45,37 +64,30 @@ No dashboards. No log-tailing. Just a town you can read like a book.
 
 <br clear="right"/>
 
-## Get it running
-
-```bash
-git clone https://github.com/yazinsai/town.git
-cd town
-bun install
-```
-
-```bash
-cp .env.example .env
-# Set TOWN_PASSWORD (or leave default: claude2024)
-# Anthropic API key is picked up from ~/.claude/ automatically
-```
-
-```bash
-bun run dev
-```
-
-Open **http://localhost:5173** — you're the new sheriff in town.
-
 ## How to use it
 
-**Build something →** Click **+**, pick a project, choose a building style (saloon, bank, sheriff office...), write a prompt, and watch your agent get to work.
+**Build something -->** Click **+**, pick a project, choose a building style (saloon, bank, sheriff office...), write a prompt, and watch your agent get to work.
 
-**Check in →** Windows glow and flicker as agents work. You can feel the activity without opening anything.
+**Check in -->** Windows glow and flicker as agents work. You can feel the activity without opening anything.
 
-**Respond →** Speech bubble? Click it. Quick-response panel lets you answer and get back to watching the sunset.
+**Respond -->** Speech bubble? Click it. Quick-response panel lets you answer and get back to watching the sunset.
 
-**Go deeper →** Click any building to expand it — full conversation logs, streaming output, spawn more agents on the same project.
+**Go deeper -->** Click any building to expand it — full conversation logs, streaming output, spawn more agents on the same project.
 
 **Each agent gets its own git worktree**, so multiple agents can work on the same repo without stepping on each other. When they finish, changes merge back automatically.
+
+## CLI options
+
+| Option | Description | Default |
+|---|---|---|
+| `--port <number>` | Port to run on | `3000` |
+| `--no-open` | Don't auto-open browser | opens browser |
+| `--password <string>` | Set town password | auto-generated |
+| `--data-dir <path>` | Data directory | `~/.claude-town` |
+
+```bash
+npx claude-town --port 4000 --no-open
+```
 
 ## What's under the hood
 
@@ -112,6 +124,19 @@ Your agents deserve nice offices. Pick from 8 hand-crafted pixel art buildings:
 **Saloon** · **Bank** · **Sheriff Office** · **General Store** · **Hotel** · **Masjid** · **Blacksmith** · **Post Office**
 
 Each one is rendered entirely in CSS. No image sprites. No canvas. Just divs with dreams.
+
+## Development
+
+Want to contribute? Saddle up:
+
+```bash
+git clone https://github.com/yazinsai/claude-town.git
+cd claude-town
+bun install
+bun run dev
+```
+
+Open **http://localhost:5173** — you're the new sheriff in town.
 
 ---
 
