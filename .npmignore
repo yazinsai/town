@@ -1,0 +1,12 @@
+src/
+scripts/
+docs/
+data/
+static/
+.env*
+.gitignore
+tsconfig.json
+vite.config.ts
+SPEC.md
+*.tgz
+.claude*
