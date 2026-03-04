@@ -44,7 +44,7 @@ try {
 
   Install it:  curl -fsSL https://bun.sh/install | bash
 
-  Then try again: npx claude-town
+  Then try again: npx claude-town-app
 `);
   process.exit(1);
 }

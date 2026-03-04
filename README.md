@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/npm/v/claude-town?style=flat-square&color=cb3837" />
+  <img src="https://img.shields.io/npm/v/claude-town-app?style=flat-square&color=cb3837" />
   <img src="https://img.shields.io/badge/runtime-bun-f472b6?style=flat-square" />
   <img src="https://img.shields.io/badge/frontend-react_19-61dafb?style=flat-square" />
   <img src="https://img.shields.io/badge/agents-claude_sdk-d97706?style=flat-square" />
@@ -32,7 +32,7 @@ Each **building** is a project. Each **floor** is an agent. When an agent needs 
 ## Quick start
 
 ```bash
-npx claude-town
+npx claude-town-app
 ```
 
 That's it. Your town opens in the browser, ready for business.
@@ -86,7 +86,7 @@ No dashboards. No log-tailing. Just a town you can read like a book.
 | `--data-dir <path>` | Data directory | `~/.claude-town` |
 
 ```bash
-npx claude-town --port 4000 --no-open
+npx claude-town-app --port 4000 --no-open
 ```
 
 ## What's under the hood

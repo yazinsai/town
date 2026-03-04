@@ -1,5 +1,5 @@
 {
-  "name": "claude-town",
+  "name": "claude-town-app",
   "version": "0.1.0",
   "description": "A pixel art western town where your AI agents live and work. Visual orchestrator for the Claude Agent SDK.",
   "type": "module",
