@@ -1,15 +1,29 @@
 {
   "name": "claude-town",
   "version": "0.1.0",
-  "private": true,
+  "description": "A pixel art western town where your AI agents live and work. Visual orchestrator for the Claude Agent SDK.",
   "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yazinsai/claude-town"
+  },
+  "keywords": ["claude", "agent", "sdk", "ai", "pixel-art", "orchestrator", "claude-code"],
+  "engines": {
+    "bun": ">=1.0.0"
+  },
+  "bin": {
+    "claude-town": "bin/claude-town.mjs"
+  },
+  "files": ["bin/", "server/", "shared/", "dist/", "README.md"],
   "scripts": {
     "dev": "concurrently -k -n server,vite -c blue,green \"bun run dev:server\" \"bun run dev:vite\"",
     "dev:expose": "TOWN_PASSWORD=$(openssl rand -hex 8) concurrently -k -n server,vite,tunnel -c blue,green,yellow \"bun run dev:server\" \"bun run dev:vite\" \"bun scripts/tunnel.ts\"",
     "dev:server": "bun --hot server/index.ts",
     "dev:vite": "vite",
     "build": "vite build",
-    "start": "NODE_ENV=production bun server/index.ts"
+    "start": "NODE_ENV=production bun server/index.ts",
+    "prepublishOnly": "vite build"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "latest",
