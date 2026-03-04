@@ -1,11 +1,10 @@
 import { Hono } from "hono";
 import { readdirSync, statSync } from "fs";
 import { join, dirname, basename } from "path";
-import { homedir } from "os";
 
 const app = new Hono();
 
-export const PROJECTS_ROOT = join(homedir(), "ai", "projects");
+export const PROJECTS_ROOT = process.env.CLAUDE_TOWN_PROJECTS_ROOT || process.cwd();
 
 function listDirs(dir: string): { name: string; path: string }[] {
   try {
