@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import type { Building, Agent, WSEvent } from "@shared/types";
-import { getBuilding, spawnAgent, killAgent, deleteBuilding, respondToAgent, mergeAgent, discardAgent, revertAgent } from "../../lib/api";
+import { getBuilding, spawnAgent, killAgent, deleteBuilding, respondToAgent, mergeAgent, discardAgent, revertAgent, setCaretaker, removeCaretaker } from "../../lib/api";
 import { useAgent } from "../../hooks/useAgent";
 import { useImageAttachments } from "../../hooks/useImageAttachments";
 import { ImageThumbnails, AttachButton, HiddenFileInput } from "../ui/ImageAttachments";
@@ -38,6 +38,140 @@ const floorStyles: Record<string, { accent: string; border: string; bg: string; 
 };
 
 const defaultFloorStyle = floorStyles.idle;
+
+function CaretakerSection({ building }: { building: Building }) {
+  const [editing, setEditing] = useState(false);
+  const [model, setModel] = useState<"claude" | "codex">(building.caretaker?.model || "claude");
+  const [instructions, setInstructions] = useState(building.caretaker?.instructions || "");
+  const [enabled, setEnabled] = useState(building.caretaker?.enabled ?? true);
+  const [saving, setSaving] = useState(false);
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      await setCaretaker(building.id, { model, instructions, enabled });
+      setEditing(false);
+    } catch (err) {
+      console.error("Failed to save caretaker:", err);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleRemove() {
+    setSaving(true);
+    try {
+      await removeCaretaker(building.id);
+      setEditing(false);
+    } catch (err) {
+      console.error("Failed to remove caretaker:", err);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!building.caretaker && !editing) {
+    return (
+      <div style={{ marginBottom: "12px" }}>
+        <PixelButton onClick={() => setEditing(true)}>+ CARETAKER</PixelButton>
+      </div>
+    );
+  }
+
+  if (!editing && building.caretaker) {
+    return (
+      <div style={{
+        marginBottom: "12px",
+        border: "2px solid #5C3317",
+        background: "rgba(92,51,23,0.15)",
+        padding: "8px",
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+          <PixelText variant="small" color="#D2B48C">
+            CARETAKER ({building.caretaker.model.toUpperCase()})
+          </PixelText>
+          <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
+            <PixelText variant="small" color={building.caretaker.enabled ? "#4CAF50" : "#9E9E9E"}>
+              {building.caretaker.enabled ? "ON" : "OFF"}
+            </PixelText>
+            <PixelButton variant="ghost" onClick={() => {
+              setModel(building.caretaker!.model);
+              setInstructions(building.caretaker!.instructions);
+              setEnabled(building.caretaker!.enabled);
+              setEditing(true);
+            }}>EDIT</PixelButton>
+          </div>
+        </div>
+        <PixelText variant="small" color="#A0826A" style={{
+          display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as const, overflow: "hidden",
+        }}>
+          {building.caretaker.instructions}
+        </PixelText>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{
+      marginBottom: "12px",
+      border: "2px solid #8B4513",
+      background: "rgba(92,51,23,0.15)",
+      padding: "8px",
+    }}>
+      <PixelText variant="small" color="#D2B48C" style={{ marginBottom: "8px" }}>
+        {building.caretaker ? "EDIT CARETAKER" : "SET CARETAKER"}
+      </PixelText>
+
+      <div style={{ display: "flex", gap: "6px", marginBottom: "8px" }}>
+        <PixelButton
+          variant={model === "claude" ? "primary" : "ghost"}
+          onClick={() => setModel("claude")}
+        >CLAUDE</PixelButton>
+        <PixelButton
+          variant={model === "codex" ? "primary" : "ghost"}
+          onClick={() => setModel("codex")}
+        >CODEX</PixelButton>
+      </div>
+
+      <textarea
+        value={instructions}
+        onChange={(e) => setInstructions(e.target.value)}
+        placeholder="Instructions for the caretaker..."
+        style={{
+          width: "100%",
+          minHeight: "80px",
+          background: "#1A0F0A",
+          border: "2px solid #5C3317",
+          color: "#D2B48C",
+          fontFamily: "'Press Start 2P', monospace",
+          fontSize: "8px",
+          lineHeight: "14px",
+          padding: "6px",
+          resize: "vertical",
+          boxSizing: "border-box",
+        }}
+      />
+
+      <div style={{ display: "flex", alignItems: "center", gap: "8px", margin: "8px 0" }}>
+        <PixelText variant="small" color="#A0826A">ENABLED:</PixelText>
+        <PixelButton
+          variant={enabled ? "primary" : "ghost"}
+          onClick={() => setEnabled(!enabled)}
+        >{enabled ? "YES" : "NO"}</PixelButton>
+      </div>
+
+      <div style={{ display: "flex", gap: "6px" }}>
+        <PixelButton onClick={handleSave} disabled={saving || !instructions.trim()}>
+          {saving ? "..." : "SAVE"}
+        </PixelButton>
+        <PixelButton variant="ghost" onClick={() => setEditing(false)}>CANCEL</PixelButton>
+        {building.caretaker && (
+          <PixelButton variant="danger" onClick={handleRemove} disabled={saving}>REMOVE</PixelButton>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function AgentFloor({
   agent,
@@ -254,6 +388,7 @@ export default function BuildingDetail({
   onAgentSeen,
   onDeleted,
 }: BuildingDetailProps) {
+  const [currentBuilding, setCurrentBuilding] = useState(building);
   const [agents, setAgents] = useState<Agent[]>([]);
   const [newPrompt, setNewPrompt] = useState("");
   const [spawning, setSpawning] = useState(false);
@@ -297,6 +432,9 @@ export default function BuildingDetail({
       lastEvent.type === "agent:reverted"
     ) {
       fetchDetail();
+    }
+    if (lastEvent.type === "building:updated" && (lastEvent as any).building?.id === building.id) {
+      setCurrentBuilding((lastEvent as any).building);
     }
   }, [lastEvent]);
 
@@ -346,6 +484,8 @@ export default function BuildingDetail({
       <PixelText variant="small" color="#A0826A" style={{ marginBottom: "16px" }}>
         {building.projectPath}
       </PixelText>
+
+      <CaretakerSection building={currentBuilding} />
 
       {/* Agent floors */}
       <div style={{ marginBottom: "12px" }}>
