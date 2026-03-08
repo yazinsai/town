@@ -12,6 +12,7 @@ import RailwayStation from "../sprites/RailwayStation";
 import ClockTower from "../sprites/ClockTower";
 import Pagoda from "../sprites/Pagoda";
 import Observatory from "../sprites/Observatory";
+import CaretakerSprite from "../sprites/CaretakerSprite";
 import SpeechBubble from "./SpeechBubble";
 import type { BubbleType } from "./SpeechBubble";
 
@@ -164,6 +165,18 @@ export default function Building({
             </div>
           );
         })}
+
+        {/* Caretaker figure at building base */}
+        {building.caretaker?.enabled && (
+          <div style={{
+            position: "absolute",
+            bottom: "-28px",
+            left: "4px",
+            zIndex: 6,
+          }}>
+            <CaretakerSprite />
+          </div>
+        )}
       </div>
     </div>
   );

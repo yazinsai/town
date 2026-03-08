@@ -152,3 +152,22 @@ body {
   background: var(--color-wood-light);
   border: 1px solid var(--color-wood-dark);
 }
+
+@keyframes caretaker-idle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-1px); }
+}
+
+@keyframes caretaker-active {
+  0%, 100% { transform: translateY(0) scale(1); }
+  25% { transform: translateY(-2px) scale(1.05); }
+  75% { transform: translateY(0) scale(0.98); }
+}
+
+.animate-caretaker-idle {
+  animation: caretaker-idle 3s ease-in-out infinite;
+}
+
+.animate-caretaker-active {
+  animation: caretaker-active 0.8s ease-in-out infinite;
+}
