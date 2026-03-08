@@ -36,6 +36,13 @@ export interface Building {
   buildingStyle: BuildingStyle;
   createdAt: string;
   agents: string[];
+  caretaker?: Caretaker;
+}
+
+export interface Caretaker {
+  model: "claude" | "codex";
+  instructions: string;
+  enabled: boolean;
 }
 
 export interface Agent {
@@ -82,7 +89,7 @@ export interface PendingPermission {
 
 export interface ConversationEntry {
   timestamp: string;
-  role: "assistant" | "user" | "tool_call" | "tool_result" | "system";
+  role: "assistant" | "user" | "tool_call" | "tool_result" | "system" | "caretaker";
   content: string;
   metadata?: Record<string, unknown>;
 }
@@ -135,4 +142,7 @@ export type WSEvent =
   | { type: "agent:reverted"; agentId: string }
   | { type: "building:created"; building: Building }
   | { type: "building:removed"; buildingId: string }
-  | { type: "building:restored"; building: Building };
+  | { type: "building:restored"; building: Building }
+  | { type: "caretaker:responded"; agentId: string; buildingId: string; summary: string }
+  | { type: "caretaker:escalated"; agentId: string; buildingId: string; reason: string }
+  | { type: "building:updated"; building: Building };
