@@ -175,7 +175,8 @@ function respawnSession(agentId: string, message: string) {
 
 export async function respondToAgent(
   agentId: string,
-  request: RespondToAgentRequest
+  request: RespondToAgentRequest,
+  source?: "user" | "caretaker"
 ) {
   const agent = storage.getAgent(agentId);
   if (!agent) {
@@ -196,7 +197,7 @@ export async function respondToAgent(
 
   const entry: ConversationEntry = {
     timestamp: new Date().toISOString(),
-    role: "user",
+    role: source || "user",
     content: userContent,
   };
   await storage.appendConversation(agentId, entry);

@@ -358,16 +358,6 @@ export function handleCaretaker(
       const parsed = parseResponse(responseText, question, permission);
 
       if (parsed.action === "respond") {
-        // Log caretaker response
-        const entry: ConversationEntry = {
-          timestamp: new Date().toISOString(),
-          role: "caretaker",
-          content: responseText,
-          metadata: { model: caretaker.model },
-        };
-        await storage.appendConversation(agentId, entry);
-        broadcast({ type: "agent:message", agentId, entry });
-
         // Build the respondToAgent request
         const request: RespondToAgentRequest = { type: "answer" };
         if (type === "permission") {
@@ -380,7 +370,7 @@ export function handleCaretaker(
 
         // Dynamic import to avoid circular dependency
         const { respondToAgent } = await import("./agents/manager");
-        await respondToAgent(agentId, request);
+        await respondToAgent(agentId, request, "caretaker");
 
         broadcast({
           type: "caretaker:responded",
@@ -396,6 +386,16 @@ export function handleCaretaker(
           buildingId: building.id,
           reason: parsed.reason || "Caretaker escalated to owner",
         });
+
+        // Re-broadcast the original event so the speech bubble appears
+        const currentAgent = storage.getAgent(agentId);
+        if (currentAgent) {
+          if (type === "question" && currentAgent.pendingQuestion) {
+            broadcast({ type: "agent:question", agentId, question: currentAgent.pendingQuestion });
+          } else if (type === "permission" && currentAgent.pendingPermission) {
+            broadcast({ type: "agent:permission", agentId, permission: currentAgent.pendingPermission });
+          }
+        }
       }
     } catch (err: any) {
       // On error, silently escalate — the speech bubble stays for the owner
@@ -406,6 +406,16 @@ export function handleCaretaker(
         buildingId: building.id,
         reason: `Caretaker error: ${err.message}`,
       });
+
+      // Re-broadcast the original event so the speech bubble appears
+      const errorAgent = storage.getAgent(agentId);
+      if (errorAgent) {
+        if (type === "question" && errorAgent.pendingQuestion) {
+          broadcast({ type: "agent:question", agentId, question: errorAgent.pendingQuestion });
+        } else if (type === "permission" && errorAgent.pendingPermission) {
+          broadcast({ type: "agent:permission", agentId, permission: errorAgent.pendingPermission });
+        }
+      }
     }
   });
 
