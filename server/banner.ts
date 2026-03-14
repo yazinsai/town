@@ -45,11 +45,6 @@ export async function printBanner(port: number, cwd: string) {
     lines.push(`  Network: ${networkUrl}`);
   }
 
-  const password = process.env.TOWN_PASSWORD;
-  if (password) {
-    lines.push(`  Password: ${password}`);
-  }
-
   lines.push("");
   lines.push("  ── About ──────────────────────────────────");
   lines.push("  Runs entirely on your machine");
