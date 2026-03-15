@@ -130,8 +130,8 @@ Each one is rendered entirely in CSS. No image sprites. No canvas. Just divs wit
 Want to contribute? Saddle up:
 
 ```bash
-git clone https://github.com/yazinsai/claude-town.git
-cd claude-town
+git clone https://github.com/yazinsai/town.git
+cd town
 bun install
 bun run dev
 ```
