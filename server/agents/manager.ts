@@ -221,6 +221,26 @@ export async function respondToAgent(
     throw new Error(`No active session for agent ${agentId}`);
   }
 
+  // If agent has a pending question and user sends a freeform message,
+  // convert it to an answer so it unblocks the waiting promise
+  if (request.type === "message" && agent.pendingQuestion) {
+    const answers: Record<string, string> = {};
+    for (const q of agent.pendingQuestion.questions) {
+      answers[q.question] = request.message || "";
+    }
+    session.respondToQuestion(answers);
+    return;
+  }
+
+  // If agent has a pending permission and user sends a freeform message,
+  // interpret it as approval/denial
+  if (request.type === "message" && agent.pendingPermission) {
+    const msg = (request.message || "").toLowerCase();
+    const denied = msg.includes("deny") || msg.includes("reject") || msg.includes("no");
+    session.respondToPermission(!denied);
+    return;
+  }
+
   switch (request.type) {
     case "answer":
       session.respondToQuestion(request.answers || {});
