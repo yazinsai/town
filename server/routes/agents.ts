@@ -77,7 +77,7 @@ app.post("/:id/merge", async (c) => {
     const building = storage.getBuilding(agent.buildingId);
     if (!building) return c.json({ error: "Building not found" }, 404);
 
-    const result = await mergeWorktree(building.projectPath, agent.branchName, building.id);
+    const result = await mergeWorktree(building.projectPath, agent.branchName, building.id, agent.worktreePath);
     if (!result.success) {
       return c.json({ error: result.error }, 409);
     }

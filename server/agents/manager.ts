@@ -69,7 +69,7 @@ function makeCallbacks(agentId: string): AgentCallbacks {
       if (agent?.worktreePath && agent?.branchName && agent.mergeStatus === "pending") {
         const building = storage.getBuilding(agent.buildingId);
         if (building) {
-          const result = await mergeWorktree(building.projectPath, agent.branchName, building.id);
+          const result = await mergeWorktree(building.projectPath, agent.branchName, building.id, agent.worktreePath);
           if (result.success) {
             try {
               await cleanupWorktree(building.projectPath, agent.worktreePath, agent.branchName);
@@ -150,9 +150,11 @@ export async function createAgent(
 
 /**
  * Re-spawn a session for an agent whose SDK query has ended.
- * Uses the saved SDK session ID to resume with full conversation context.
+ * Uses the saved SDK session ID to resume with full conversation context,
+ * but only if the worktree is still intact. After merge/discard/revert the
+ * session was tied to the (now-deleted) worktree path and can't be resumed.
  */
-function respawnSession(agentId: string, message: string) {
+async function respawnSession(agentId: string, message: string) {
   const agent = storage.getAgent(agentId);
   if (!agent) throw new Error(`Agent ${agentId} not found`);
 
@@ -162,14 +164,41 @@ function respawnSession(agentId: string, message: string) {
   // Use worktree path if available, otherwise fall back to project path
   const cwd = agent.worktreePath || building.projectPath;
 
+  // Can only resume if the worktree is still intact (cwd matches the original session)
+  // After merge/discard/revert the worktree is deleted and the SDK session
+  // was tied to that path — resuming with a different cwd causes exit code 1
+  const canResume = !!agent.worktreePath && !!agent.sdkSessionId;
+
+  let prompt = message;
+  if (!canResume && agent.sdkSessionId) {
+    // Build context from conversation history so the agent isn't starting blind
+    const conversation = await storage.getConversation(agentId);
+    const contextLines: string[] = [
+      `You are continuing work on a project. Here is the previous conversation summary:`,
+      `Original task: ${agent.initialPrompt}`,
+    ];
+    // Include last few meaningful messages for context (skip tool calls)
+    const recentMessages = conversation
+      .filter((e) => e.role === "assistant" || e.role === "user")
+      .slice(-6);
+    if (recentMessages.length > 0) {
+      contextLines.push("", "Recent conversation:");
+      for (const msg of recentMessages) {
+        contextLines.push(`[${msg.role}]: ${msg.content.slice(0, 500)}`);
+      }
+    }
+    contextLines.push("", `New user message: ${message}`);
+    prompt = contextLines.join("\n");
+  }
+
   const callbacks = makeCallbacks(agentId);
   createSession(
     agentId,
     cwd,
-    message,
+    prompt,
     callbacks,
     agent.customSystemPrompt || undefined,
-    agent.sdkSessionId || undefined // Resume previous conversation
+    canResume ? agent.sdkSessionId! : undefined
   );
 }
 
@@ -213,7 +242,7 @@ export async function respondToAgent(
 
   // If session ended (agent completed/errored), re-spawn for follow-up messages
   if (!session && request.type === "message" && request.message) {
-    respawnSession(agentId, request.message);
+    await respawnSession(agentId, request.message);
     return;
   }
 

@@ -63,11 +63,13 @@ export async function createWorktree(
 /**
  * Merge an agent's branch into main (sequential per building).
  * Uses --no-ff to always create a merge commit for easy revert.
+ * If the worktree has uncommitted changes, commits them first.
  */
 export async function mergeWorktree(
   projectPath: string,
   branchName: string,
-  buildingId: string
+  buildingId: string,
+  worktreePath?: string | null
 ): Promise<MergeResult> {
   // Acquire per-building lock
   const existing = mergeLocks.get(buildingId) || Promise.resolve();
@@ -80,6 +82,23 @@ export async function mergeWorktree(
 
   try {
     await existing; // Wait for any prior merge on this building
+
+    // Auto-commit uncommitted changes in the worktree before merging
+    if (worktreePath) {
+      const status = await $`git -C ${worktreePath} status --porcelain`.quiet().nothrow();
+      const hasChanges = status.text().trim().length > 0;
+      if (hasChanges) {
+        await $`git -C ${worktreePath} add -A`.quiet().nothrow();
+        await $`git -C ${worktreePath} commit -m "agent changes"`.quiet().nothrow();
+      }
+    }
+
+    // Check if the branch actually has new commits vs current HEAD
+    const headSha = (await $`git -C ${projectPath} rev-parse HEAD`.quiet()).text().trim();
+    const branchSha = (await $`git -C ${projectPath} rev-parse ${branchName}`.quiet().nothrow()).text().trim();
+    if (headSha === branchSha) {
+      return { success: true }; // Nothing to merge — no mergeCommitSha means no commit was created
+    }
 
     const mergeResult =
       await $`git -C ${projectPath} merge --no-ff -m ${"merge: " + branchName} ${branchName}`
