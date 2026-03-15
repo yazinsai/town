@@ -10,7 +10,7 @@ const pkgRoot = join(__dirname, "..");
 
 // Parse args
 const args = process.argv.slice(2);
-let port = "3000";
+let port = "3174";
 let noOpen = false;
 let password = "";
 let dataDir = "";
@@ -25,7 +25,7 @@ for (let i = 0; i < args.length; i++) {
   Usage: claude-town [options]
 
   Options:
-    --port <number>     Port to run on (default: 3000)
+    --port <number>     Port to run on (default: 3174)
     --no-open           Don't auto-open browser
     --password <string> Set town password (default: auto-generated)
     --data-dir <path>   Data directory (default: ~/.claude-town)
@@ -57,6 +57,7 @@ const env = {
 };
 if (password) env.TOWN_PASSWORD = password;
 if (dataDir) env.CLAUDE_TOWN_DATA_DIR = dataDir;
+
 
 // Spawn bun server
 const serverPath = join(pkgRoot, "server", "index.ts");

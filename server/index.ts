@@ -20,7 +20,7 @@ const app = new Hono();
 app.use(
   "/api/*",
   cors({
-    origin: ["http://localhost:5173", "http://localhost:3000"],
+    origin: ["http://localhost:5173", "http://localhost:3174"],
     credentials: true,
   })
 );
@@ -96,7 +96,7 @@ setInterval(async () => {
   if (n > 0) console.log(`Purged ${n} expired trashed buildings`);
 }, 60 * 60 * 1000);
 
-const port = parseInt(process.env.PORT || "3000");
+const port = parseInt(process.env.PORT || "3174");
 
 const server = Bun.serve({
   port,

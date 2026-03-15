@@ -15,11 +15,11 @@ export default defineConfig({
     allowedHosts: true,
     proxy: {
       "/api": {
-        target: "http://localhost:3000",
+        target: "http://localhost:3174",
         changeOrigin: true,
       },
       "/ws": {
-        target: "ws://localhost:3000",
+        target: "ws://localhost:3174",
         ws: true,
       },
     },
