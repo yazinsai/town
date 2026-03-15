@@ -41,6 +41,10 @@ export function useBuildings(lastEvent: WSEvent | null, enabled: boolean) {
         if (exists) return prev.map((b) => b.id === lastEvent.building.id ? lastEvent.building : b);
         return [...prev, lastEvent.building];
       });
+    } else if (lastEvent.type === "building:updated") {
+      setBuildings((prev) =>
+        prev.map((b) => (b.id === lastEvent.building.id ? lastEvent.building : b))
+      );
     }
   }, [lastEvent]);
 

@@ -12,6 +12,7 @@ import TrashPanel from "./components/panels/TrashPanel";
 import PixelButton from "./components/ui/PixelButton";
 import PixelInput from "./components/ui/PixelInput";
 import PixelText from "./components/ui/PixelText";
+import { useToasts, ToastContainer } from "./components/ui/Toast";
 
 const SEEN_AGENTS_KEY = "claude-town-seen-agents";
 
@@ -133,6 +134,7 @@ export default function App() {
   const { lastEvent, connected } = useWebSocket(authed);
   const { muted, toggleMute } = useSoundEffects(lastEvent);
   const { buildings, refetch } = useBuildings(lastEvent, authed);
+  const { toasts, dismiss } = useToasts(lastEvent);
   const [panel, setPanel] = useState<Panel>({ type: "none" });
   const [agentsByBuilding, setAgentsByBuilding] = useState<Record<string, Agent[]>>({});
   const [seenAgents, setSeenAgents] = useState(() => loadSeenAgents());
@@ -378,6 +380,8 @@ export default function App() {
           }}
         />
       )}
+
+      <ToastContainer toasts={toasts} onDismiss={dismiss} />
     </div>
   );
 }

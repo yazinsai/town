@@ -108,6 +108,41 @@ app.delete("/:id", async (c) => {
   return c.json({ success: true });
 });
 
+// Set/update caretaker
+app.put("/:id/caretaker", async (c) => {
+  const building = storage.getBuilding(c.req.param("id"));
+  if (!building) return c.json({ error: "Building not found" }, 404);
+
+  const body = await c.req.json<{ model: "claude" | "codex"; instructions: string; enabled: boolean }>();
+  if (!body.model || !body.instructions) {
+    return c.json({ error: "model and instructions are required" }, 400);
+  }
+
+  const caretaker = {
+    model: body.model,
+    instructions: body.instructions,
+    enabled: body.enabled ?? true,
+  };
+
+  await storage.updateBuilding(building.id, { caretaker });
+  const updated = storage.getBuilding(building.id)!;
+  broadcast({ type: "building:updated", building: updated });
+
+  return c.json({ caretaker });
+});
+
+// Remove caretaker
+app.delete("/:id/caretaker", async (c) => {
+  const building = storage.getBuilding(c.req.param("id"));
+  if (!building) return c.json({ error: "Building not found" }, 404);
+
+  await storage.updateBuilding(building.id, { caretaker: undefined });
+  const updated = storage.getBuilding(building.id)!;
+  broadcast({ type: "building:updated", building: updated });
+
+  return c.json({ success: true });
+});
+
 // Spawn new agent on building
 app.post("/:id/agents", async (c) => {
   try {

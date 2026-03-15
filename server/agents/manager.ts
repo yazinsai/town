@@ -2,6 +2,7 @@ import { createSession, killSession, getSession } from "./sdk";
 import type { AgentCallbacks } from "./sdk";
 import * as storage from "../storage";
 import { broadcast } from "../websocket";
+import { handleCaretaker } from "../caretaker";
 import { isGitRepo, createWorktree, mergeWorktree, cleanupWorktree } from "../worktree";
 import type { AgentState, ConversationEntry, RespondToAgentRequest } from "../../shared/types";
 
@@ -32,7 +33,12 @@ function makeCallbacks(agentId: string): AgentCallbacks {
         pendingQuestion: question,
         pendingPermission: null,
       });
-      broadcast({ type: "agent:question", agentId, question });
+
+      // Try caretaker first — if it handles it, skip broadcasting speech bubble
+      const handled = await handleCaretaker(agentId, "question");
+      if (!handled) {
+        broadcast({ type: "agent:question", agentId, question });
+      }
     },
 
     onPermission: async (permission) => {
@@ -41,7 +47,12 @@ function makeCallbacks(agentId: string): AgentCallbacks {
         pendingPermission: permission,
         pendingQuestion: null,
       });
-      broadcast({ type: "agent:permission", agentId, permission });
+
+      // Try caretaker first
+      const handled = await handleCaretaker(agentId, "permission");
+      if (!handled) {
+        broadcast({ type: "agent:permission", agentId, permission });
+      }
     },
 
     onComplete: async () => {
@@ -164,7 +175,8 @@ function respawnSession(agentId: string, message: string) {
 
 export async function respondToAgent(
   agentId: string,
-  request: RespondToAgentRequest
+  request: RespondToAgentRequest,
+  source?: "user" | "caretaker"
 ) {
   const agent = storage.getAgent(agentId);
   if (!agent) {
@@ -185,7 +197,7 @@ export async function respondToAgent(
 
   const entry: ConversationEntry = {
     timestamp: new Date().toISOString(),
-    role: "user",
+    role: source || "user",
     content: userContent,
   };
   await storage.appendConversation(agentId, entry);

@@ -159,3 +159,19 @@ export async function revertAgent(id: string): Promise<void> {
 export async function getStats(): Promise<{ totalAgentsSpawned: number }> {
   return apiFetch<{ totalAgentsSpawned: number }>("/stats");
 }
+
+export async function setCaretaker(
+  buildingId: string,
+  caretaker: { model: "claude" | "codex"; instructions: string; enabled: boolean }
+): Promise<{ caretaker: { model: "claude" | "codex"; instructions: string; enabled: boolean } }> {
+  return apiFetch(`/buildings/${buildingId}/caretaker`, {
+    method: "PUT",
+    body: JSON.stringify(caretaker),
+  });
+}
+
+export async function removeCaretaker(buildingId: string): Promise<void> {
+  return apiFetch<void>(`/buildings/${buildingId}/caretaker`, {
+    method: "DELETE",
+  });
+}
